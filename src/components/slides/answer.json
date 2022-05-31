@@ -1,0 +1,17 @@
+{
+  "collectionName": "components_slides_answers",
+  "info": {
+    "displayName": "answer",
+    "icon": "align-justify"
+  },
+  "options": {},
+  "attributes": {
+    "text": {
+      "type": "string"
+    },
+    "is_correct": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

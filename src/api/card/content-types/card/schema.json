@@ -1,0 +1,91 @@
+{
+  "kind": "collectionType",
+  "collectionName": "cards",
+  "info": {
+    "singularName": "card",
+    "pluralName": "cards",
+    "displayName": "card",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "rarity": {
+      "type": "enumeration",
+      "enum": [
+        "common",
+        "rare",
+        "epic",
+        "legendary"
+      ],
+      "default": "common"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "free",
+        "premium",
+        "special"
+      ],
+      "default": "free"
+    },
+    "is_open": {
+      "type": "boolean",
+      "default": false
+    },
+    "realm": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::realm.realm",
+      "inversedBy": "cards"
+    },
+    "expansion": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::expansion.expansion",
+      "inversedBy": "cards"
+    },
+    "actions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::action.action",
+      "mappedBy": "card"
+    },
+    "streakreward": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::streakreward.streakreward",
+      "inversedBy": "reward_card"
+    },
+    "communityactions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::communityaction.communityaction",
+      "mappedBy": "card"
+    },
+    "slides": {
+      "type": "component",
+      "repeatable": true,
+      "component": "slides.slide"
+    }
+  }
+}

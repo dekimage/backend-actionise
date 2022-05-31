@@ -1,0 +1,66 @@
+{
+  "kind": "collectionType",
+  "collectionName": "usercards",
+  "info": {
+    "singularName": "usercard",
+    "pluralName": "usercards",
+    "displayName": "usercard"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "usercards"
+    },
+    "card": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::card.card"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "level": {
+      "type": "integer",
+      "default": 1
+    },
+    "quantity": {
+      "default": 1,
+      "type": "integer"
+    },
+    "completed": {
+      "type": "integer",
+      "default": 0
+    },
+    "completed_at": {
+      "type": "integer"
+    },
+    "is_favorite": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_new": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_unlocked": {
+      "type": "boolean",
+      "default": false
+    },
+    "glory_points": {
+      "type": "integer",
+      "default": 0
+    },
+    "communityactions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::communityaction.communityaction",
+      "mappedBy": "reported_by"
+    }
+  }
+}

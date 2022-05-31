@@ -1,0 +1,91 @@
+{
+  "kind": "collectionType",
+  "collectionName": "objectives",
+  "info": {
+    "singularName": "objective",
+    "pluralName": "objectives",
+    "displayName": "objective"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "link": {
+      "type": "string"
+    },
+    "requirement_amount": {
+      "type": "integer",
+      "default": 1
+    },
+    "reward_amount": {
+      "type": "integer",
+      "default": 1
+    },
+    "time_type": {
+      "type": "enumeration",
+      "enum": [
+        "daily",
+        "weekly",
+        "achievement"
+      ]
+    },
+    "reward_type": {
+      "type": "enumeration",
+      "enum": [
+        "streak",
+        "stars",
+        "gems",
+        "xp",
+        "card_common",
+        "card_rare",
+        "card_epic",
+        "card_legendary",
+        "card_any",
+        "box_1",
+        "box_2",
+        "box_3",
+        "box_4"
+      ]
+    },
+    "requirement": {
+      "type": "enumeration",
+      "enum": [
+        "complete",
+        "review",
+        "login",
+        "streak",
+        "level",
+        "favorite",
+        "collect_new",
+        "collect_common",
+        "collect_rare",
+        "collect_epic",
+        "collect_legendary",
+        "collect_prestige",
+        "upgrade_card",
+        "upgrade_common",
+        "upgrade_rare",
+        "upgrade_epic",
+        "upgrade_legendary",
+        "upgrade_prestige",
+        "share_card",
+        "add_friend",
+        "endorce_friend",
+        "purchase_gems",
+        "purchase_premium",
+        "open_pack",
+        "open_pack_basic",
+        "open_pack_basic_2",
+        "open_pack_premium",
+        "open_pack_premium_2"
+      ]
+    }
+  }
+}

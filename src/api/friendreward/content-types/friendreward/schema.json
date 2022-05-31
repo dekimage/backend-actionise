@@ -1,0 +1,26 @@
+{
+  "kind": "collectionType",
+  "collectionName": "friendrewards",
+  "info": {
+    "singularName": "friendreward",
+    "pluralName": "friendrewards",
+    "displayName": "friendreward"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "friends_count": {
+      "type": "integer"
+    },
+    "reward_amount": {
+      "type": "integer"
+    },
+    "reward_card": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::card.card"
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "kind": "collectionType",
+  "collectionName": "communityactions",
+  "info": {
+    "singularName": "communityaction",
+    "pluralName": "communityactions",
+    "displayName": "communityaction"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "votes": {
+      "type": "integer"
+    },
+    "reports": {
+      "type": "integer"
+    },
+    "duration": {
+      "type": "integer"
+    },
+    "is_private": {
+      "type": "boolean",
+      "default": false
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "idea",
+        "trigger",
+        "technique",
+        "habit",
+        "challenge"
+      ]
+    },
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "communityactions"
+    },
+    "usercard": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::usercard.usercard",
+      "inversedBy": "communityactions"
+    },
+    "card": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::card.card",
+      "inversedBy": "communityactions"
+    },
+    "claimed_by": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::usercard.usercard",
+      "inversedBy": "communityactions"
+    },
+    "voted_by": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::usercard.usercard",
+      "inversedBy": "communityactions"
+    },
+    "reported_by": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::usercard.usercard",
+      "inversedBy": "communityactions"
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "kind": "collectionType",
+  "collectionName": "products",
+  "info": {
+    "singularName": "product",
+    "pluralName": "products",
+    "displayName": "product",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "google_id": {
+      "type": "string"
+    },
+    "apple_id": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "integer"
+    },
+    "bonus_amount": {
+      "type": "integer"
+    },
+    "price": {
+      "type": "decimal"
+    },
+    "discount": {
+      "type": "decimal"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "gems",
+        "bundle",
+        "subscription"
+      ]
+    },
+    "is_disabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "bundle": {
+      "type": "dynamiczone",
+      "components": [
+        "product.box",
+        "product.currency"
+      ]
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "collectionName": "components_product_boxes",
+  "info": {
+    "displayName": "box",
+    "icon": "box-open"
+  },
+  "options": {},
+  "attributes": {
+    "box": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::box.box"
+    },
+    "quantity": {
+      "type": "integer"
+    },
+    "type": {
+      "type": "string"
+    }
+  }
+}

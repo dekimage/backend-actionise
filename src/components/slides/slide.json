@@ -1,0 +1,34 @@
+{
+  "collectionName": "components_slides_slides",
+  "info": {
+    "displayName": "slide",
+    "icon": "newspaper"
+  },
+  "options": {},
+  "attributes": {
+    "question": {
+      "type": "string"
+    },
+    "answers": {
+      "type": "component",
+      "repeatable": true,
+      "component": "slides.answer"
+    },
+    "idea_title": {
+      "type": "string"
+    },
+    "idea_content": {
+      "type": "richtext"
+    },
+    "image": {
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ],
+      "type": "media",
+      "multiple": false
+    }
+  }
+}

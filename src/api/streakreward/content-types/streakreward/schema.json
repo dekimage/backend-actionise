@@ -1,0 +1,33 @@
+{
+  "kind": "collectionType",
+  "collectionName": "streakrewards",
+  "info": {
+    "singularName": "streakreward",
+    "pluralName": "streakrewards",
+    "displayName": "streakreward"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "streak_count": {
+      "type": "integer"
+    },
+    "reward_amount": {
+      "type": "integer",
+      "default": 1
+    },
+    "reward_card": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::card.card",
+      "mappedBy": "streakreward"
+    },
+    "reward_box": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::box.box"
+    }
+  }
+}

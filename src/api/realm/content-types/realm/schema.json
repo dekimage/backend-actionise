@@ -1,0 +1,50 @@
+{
+  "kind": "collectionType",
+  "collectionName": "realms",
+  "info": {
+    "singularName": "realm",
+    "pluralName": "realms",
+    "displayName": "realm"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "color": {
+      "type": "string"
+    },
+    "coming_soon": {
+      "type": "boolean",
+      "default": false
+    },
+    "image": {
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ],
+      "type": "media",
+      "multiple": false
+    },
+    "cards": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::card.card",
+      "mappedBy": "realm"
+    },
+    "expansion": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::expansion.expansion",
+      "inversedBy": "realms"
+    }
+  }
+}

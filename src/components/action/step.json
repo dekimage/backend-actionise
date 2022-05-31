@@ -1,0 +1,13 @@
+{
+  "collectionName": "components_action_steps",
+  "info": {
+    "displayName": "step",
+    "icon": "play"
+  },
+  "options": {},
+  "attributes": {
+    "content": {
+      "type": "richtext"
+    }
+  }
+}

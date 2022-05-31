@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_product_currencies",
+  "info": {
+    "displayName": "currency",
+    "icon": "star"
+  },
+  "options": {},
+  "attributes": {
+    "type": {
+      "type": "string"
+    },
+    "quantity": {
+      "type": "integer"
+    }
+  }
+}

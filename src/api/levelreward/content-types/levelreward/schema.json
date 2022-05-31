@@ -1,0 +1,43 @@
+{
+  "kind": "collectionType",
+  "collectionName": "levelrewards",
+  "info": {
+    "singularName": "levelreward",
+    "pluralName": "levelrewards",
+    "displayName": "levelreward"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "level": {
+      "type": "integer"
+    },
+    "reward_amount": {
+      "type": "integer",
+      "default": 1
+    },
+    "reward_type": {
+      "type": "enumeration",
+      "enum": [
+        "stars",
+        "gems",
+        "xp",
+        "card_common",
+        "card_rare",
+        "card_epic",
+        "card_legendary",
+        "card_any",
+        "box_1",
+        "box_2",
+        "box_3",
+        "box_4"
+      ]
+    },
+    "is_premium": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

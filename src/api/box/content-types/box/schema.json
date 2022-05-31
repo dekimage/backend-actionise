@@ -1,0 +1,55 @@
+{
+  "kind": "collectionType",
+  "collectionName": "boxes",
+  "info": {
+    "singularName": "box",
+    "pluralName": "boxes",
+    "displayName": "box"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "price": {
+      "type": "integer"
+    },
+    "require": {
+      "type": "enumeration",
+      "enum": [
+        "free",
+        "premium",
+        "special"
+      ]
+    },
+    "price_type": {
+      "type": "enumeration",
+      "enum": [
+        "stars",
+        "gems"
+      ]
+    },
+    "image": {
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ],
+      "type": "media",
+      "multiple": false
+    },
+    "expansion": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::expansion.expansion",
+      "inversedBy": "boxes"
+    }
+  }
+}
