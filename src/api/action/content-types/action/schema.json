@@ -52,6 +52,12 @@
       "type": "component",
       "repeatable": true,
       "component": "action.step"
+    },
+    "voted_by": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::usercard.usercard",
+      "inversedBy": "upvoted_actions"
     }
   }
 }

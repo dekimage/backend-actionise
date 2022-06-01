@@ -43,12 +43,6 @@
       "target": "plugin::users-permissions.user",
       "inversedBy": "communityactions"
     },
-    "usercard": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::usercard.usercard",
-      "inversedBy": "communityactions"
-    },
     "card": {
       "type": "relation",
       "relation": "manyToOne",
@@ -59,19 +53,25 @@
       "type": "relation",
       "relation": "manyToOne",
       "target": "api::usercard.usercard",
-      "inversedBy": "communityactions"
+      "inversedBy": "community_actions_claimed"
     },
     "voted_by": {
       "type": "relation",
       "relation": "manyToOne",
       "target": "api::usercard.usercard",
-      "inversedBy": "communityactions"
+      "inversedBy": "upvoted_actions"
+    },
+    "by": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::usercard.usercard",
+      "inversedBy": "my_community_actions"
     },
     "reported_by": {
       "type": "relation",
       "relation": "manyToOne",
       "target": "api::usercard.usercard",
-      "inversedBy": "communityactions"
+      "inversedBy": "reported_actions"
     }
   }
 }

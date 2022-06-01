@@ -4,7 +4,8 @@
   "info": {
     "singularName": "usercard",
     "pluralName": "usercards",
-    "displayName": "usercard"
+    "displayName": "usercard",
+    "description": ""
   },
   "options": {
     "draftAndPublish": false
@@ -56,7 +57,35 @@
       "type": "integer",
       "default": 0
     },
-    "communityactions": {
+    "completed_actions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::action.action"
+    },
+    "community_actions_claimed": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::communityaction.communityaction",
+      "mappedBy": "claimed_by"
+    },
+    "community_actions_completed": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::communityaction.communityaction"
+    },
+    "my_community_actions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::communityaction.communityaction",
+      "mappedBy": "by"
+    },
+    "upvoted_actions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::action.action",
+      "mappedBy": "voted_by"
+    },
+    "reported_actions": {
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::communityaction.communityaction",
