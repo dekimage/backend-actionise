@@ -30,7 +30,7 @@ module.exports = [
     name: "strapi::cors",
     config: {
       enabled: true,
-      header: "*",
+      headers: "*",
       origin: ["https://frontend-game.vercel.app/"],
     },
   },
