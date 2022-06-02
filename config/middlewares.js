@@ -31,7 +31,7 @@ module.exports = [
     config: {
       enabled: true,
       header: "*",
-      origin: ["https://frontend-game.vercel.app"],
+      origin: ["https://frontend-game.vercel.app/"],
     },
   },
   "strapi::poweredBy",
