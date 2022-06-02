@@ -79,17 +79,17 @@
       "target": "api::communityaction.communityaction",
       "mappedBy": "by"
     },
-    "upvoted_actions": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::action.action",
-      "mappedBy": "voted_by"
-    },
     "reported_actions": {
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::communityaction.communityaction",
       "mappedBy": "reported_by"
+    },
+    "upvoted_actions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::communityaction.communityaction",
+      "mappedBy": "voted_by"
     }
   }
 }

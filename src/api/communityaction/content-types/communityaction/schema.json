@@ -4,7 +4,8 @@
   "info": {
     "singularName": "communityaction",
     "pluralName": "communityactions",
-    "displayName": "communityaction"
+    "displayName": "communityaction",
+    "description": ""
   },
   "options": {
     "draftAndPublish": false
@@ -72,6 +73,11 @@
       "relation": "manyToOne",
       "target": "api::usercard.usercard",
       "inversedBy": "reported_actions"
+    },
+    "steps": {
+      "type": "component",
+      "repeatable": true,
+      "component": "action.step"
     }
   }
 }

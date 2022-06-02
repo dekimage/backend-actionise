@@ -80,6 +80,112 @@
       "relation": "oneToMany",
       "target": "api::order.order",
       "mappedBy": "user"
+    },
+    "gems": {
+      "type": "integer",
+      "default": 0
+    },
+    "stars": {
+      "type": "integer",
+      "default": 0
+    },
+    "streak": {
+      "default": 0,
+      "type": "integer"
+    },
+    "energy": {
+      "type": "integer",
+      "default": 3
+    },
+    "highest_buddy_shares": {
+      "type": "integer"
+    },
+    "highest_streak_count": {
+      "type": "integer"
+    },
+    "max_energy": {
+      "type": "integer",
+      "default": 3
+    },
+    "level": {
+      "type": "integer",
+      "default": 1
+    },
+    "friendrewards": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::friendreward.friendreward"
+    },
+    "levelrewards": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::levelreward.levelreward"
+    },
+    "streakrewards": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::streakreward.streakreward"
+    },
+    "shared_by": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "shared_buddies"
+    },
+    "shared_buddies": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "plugin::users-permissions.user",
+      "mappedBy": "shared_by"
+    },
+    "expansions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::expansion.expansion"
+    },
+    "last_unlocked_cards": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::card.card"
+    },
+    "last_completed_cards": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::card.card"
+    },
+    "is_subscribed": {
+      "type": "boolean",
+      "default": false
+    },
+    "followers": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "followedBy"
+    },
+    "followedBy": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "followers"
+    },
+    "boxes": {
+      "type": "json"
+    },
+    "rewards_tower": {
+      "type": "json"
+    },
+    "objectives_json": {
+      "type": "json"
+    },
+    "objectives_counter": {
+      "type": "json"
+    },
+    "streak_rewards": {
+      "type": "json"
+    },
+    "friends_rewards": {
+      "type": "json"
     }
   }
 }

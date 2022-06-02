@@ -4,7 +4,8 @@
   "info": {
     "singularName": "action",
     "pluralName": "actions",
-    "displayName": "action"
+    "displayName": "action",
+    "description": ""
   },
   "options": {
     "draftAndPublish": false
@@ -33,14 +34,15 @@
       "default": "task"
     },
     "image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
       "allowedTypes": [
         "images",
         "files",
         "videos",
         "audios"
-      ],
-      "type": "media",
-      "multiple": false
+      ]
     },
     "card": {
       "type": "relation",
@@ -52,12 +54,6 @@
       "type": "component",
       "repeatable": true,
       "component": "action.step"
-    },
-    "voted_by": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::usercard.usercard",
-      "inversedBy": "upvoted_actions"
     }
   }
 }
