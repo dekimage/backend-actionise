@@ -1,9 +1,5 @@
 "use strict";
 
-/**
- * usercard service.
- */
-
 const { createCoreService } = require("@strapi/strapi").factories;
 
 const sanitizeUser = (user) => {
@@ -36,7 +32,6 @@ const getUserCard = async (userId, cardId) => {
   const userCardRelation = await strapi.db
     .query("api::usercard.usercard")
     .findOne({ where: { user: userId, card: cardId } });
-  console.log(userCardRelation);
   return userCardRelation;
 };
 
@@ -167,7 +162,6 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
 
     // logic ->
     const userCardRelation = await getUserCard(user.id, rewardCard.id);
-    console.log("user card relation", userCardRelation);
 
     if (userCardRelation) {
       //update
@@ -235,7 +229,6 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     ) {
       ctx.throw(400, `You need to purchase Pro expansion to access this card.`);
     }
-    console.log(user.expansions.filter((e) => e.id === card.expansion.id));
 
     async function generateUserCardRelation() {
       const checkUserCardRelation = await strapi.db
@@ -337,7 +330,6 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
         };
       }
       const cardRewards = getCardCompleteReward(userCardRelation.completed);
-      console.log(cardRewards);
 
       const xp = await strapi
         .service("api::usercard.usercard")
@@ -348,8 +340,6 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
       const energy = await strapi
         .service("api::usercard.usercard")
         .gainReward(user, "energy", -1);
-
-      console.log(xp, stars, energy);
 
       // update["users_permissions_user"] = user.id;
       // update["card"] = card_id;

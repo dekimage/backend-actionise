@@ -1,9 +1,4 @@
 "use strict";
-
-/**
- *  usercard controller
- */
-
 const { createCoreController } = require("@strapi/strapi").factories;
 
 const sanitizeUser = (user) => {
@@ -17,7 +12,6 @@ const sanitizeUser = (user) => {
   delete user["createdAt"];
   return user;
 };
-
 const formatDate = (date) => {
   const padTo2Digits = (num) => {
     return num.toString().padStart(2, "0");
@@ -27,16 +21,6 @@ const formatDate = (date) => {
     padTo2Digits(date.getMonth() + 1),
     padTo2Digits(date.getDate()),
   ].join("-");
-};
-// ERROR HANDLE
-// return ctx.badRequest('name is missing', { foo: 'bar' })
-const dispatch = (ctx, data, notification = "DEV_TEST", toast = false) => {
-  console.log(data);
-  return {
-    data: data,
-    notification: notification,
-    toast: toast ? toast : null,
-  };
 };
 const getUserCard = async (userId, cardId) => {
   const userCardRelation = await strapi
@@ -70,12 +54,6 @@ const updateUser = async (id, payload, populate = {}) => {
 
   return sanitizeUser(user);
 };
-
-// call achievement listerner ->    await strapi.plugins["users-permissions"].services.user.achievementTrigger(
-//   user,
-//   "complete"
-// );
-
 module.exports = createCoreController(
   "api::usercard.usercard",
   ({ strapi }) => ({
@@ -152,6 +130,7 @@ module.exports = createCoreController(
 
       return data;
     },
+    // DONE
     async updateCard(ctx) {
       const user = await getUser(ctx.state.user.id, {
         last_completed_cards: true,
@@ -183,7 +162,6 @@ module.exports = createCoreController(
     },
     // DONE
     async collectStreakReward(ctx) {
-      // static data
       const user = await getUser(ctx.state.user.id, { shared_buddies: true });
 
       const streakCount = ctx.params.id;
@@ -194,8 +172,6 @@ module.exports = createCoreController(
           where: { streak_count: streakCount },
           populate: { reward_card: true, reward_box: true },
         });
-
-      console.log(streakReward);
 
       let userRewards = user.streak_rewards || {};
 
@@ -321,8 +297,6 @@ module.exports = createCoreController(
         });
 
       let userRewards = user.rewards_tower || {};
-      console.log("user level", user.level);
-      console.log("reward level", levelReward);
 
       if (!levelReward) {
         return ctx.badRequest("This level reward does not exist.");
@@ -366,66 +340,51 @@ module.exports = createCoreController(
         updatedRewards,
       };
     },
+    // DONE
     async claimObjectiveCounter(ctx) {
-      // UPDATE OBJECTIVES COUNTER
       const objectiveCounterId = ctx.params.id;
       const temporal_type = ctx.request.body.temporal_type; // PASS AS DATA??
 
-      const user = await strapi
-        .query("user", "users-permissions")
-        .findOne({ id: ctx.state.user.id });
+      console.log(temporal_type);
+
+      const user = await getUser(ctx.state.user.id);
 
       const user_objectives = user.objectives_json;
       let user_objectives_counter = user.objectives_counter || {};
-      // ERRORS
+
       if (!objectiveCounterId || !temporal_type) {
         ctx.throw(400, `Please provide objective id and type`);
       }
       if (objectiveCounterId < 1 || objectiveCounterId > 4) {
         ctx.throw(400, `This objective reward does not exist.`);
       }
-
-      const days = temporal_type === "weekly" ? 7 : 1;
+      if (temporal_type !== "daily" && temporal_type !== "weekly") {
+        ctx.throw(400, `This objective temporal_type does not exist.`);
+      }
 
       const userCounter =
         user_objectives_counter[temporal_type] &&
         user_objectives_counter[temporal_type][objectiveCounterId];
 
-      const distance = getTime(userCounter && userCounter, days);
-
-      console.log(userCounter);
-      console.log(distance);
-
-      if (distance > 0) {
-        ctx.throw(400, `You have already claimed this reward.`);
-      }
-
       let completedObjectivesCount = 0;
-      const objectives = await strapi
-        .query("objective")
-        .find({ time_type: temporal_type });
+
+      const objectives = await strapi.db
+        .query("api::objective.objective")
+        .findMany({
+          where: {
+            time_type: temporal_type,
+          },
+        });
+
       const objectivesIds = objectives.map((obj) => obj.id);
       //user_objectives nema ids, treba da vlezam vo temporal type za da gi najdam
       // check progress by the other objective json...
 
       for (const id in user_objectives) {
-        const lastTimeCompleted = user_objectives[id].isCollected;
-        const distance = lastTimeCompleted
-          ? getTime(lastTimeCompleted, days)
-          : -1;
-        console.log(distance);
-        if (objectivesIds.includes(parseInt(id)) && distance > 0) {
+        if (objectivesIds.includes(parseInt(id))) {
           completedObjectivesCount++;
         }
       }
-
-      // console.log(555, completedObjectivesCount);
-
-      // console.log("completedObjectivesCount", completedObjectivesCount);
-      // console.log("user_objectives", user_objectives);
-      // console.log("objectives", objectives);
-      // console.log("user_objectives_counter", user_objectives_counter);
-      // console.log("objectiveCounterId", objectiveCounterId);
 
       if (completedObjectivesCount < objectiveCounterId) {
         ctx.throw(
@@ -444,14 +403,11 @@ module.exports = createCoreController(
         };
       }
 
-      const data = await strapi.plugins["users-permissions"].services.user.edit(
-        { id: ctx.state.user.id },
-        {
-          objectives_counter: user_objectives_counter,
-        }
-      );
+      const payload = { objectives_counter: user_objectives_counter };
+      const data = await updateUser(user.id, payload);
+
       // GAIN REWARDS SERVICE TRIGGER
-      // Create strapi type??
+      //@calc
       const objectiveCounterRewardsTable = {
         daily: {
           1: {
@@ -498,29 +454,26 @@ module.exports = createCoreController(
         objectiveCounterRewardsTable[temporal_type][objectiveCounterId]
           .reward_quantity;
 
-      const updatedRewards = await strapi.plugins[
-        "users-permissions"
-      ].services.user.gainReward(user, rewardType, quantity);
+      const updatedRewards = await strapi
+        .service("api::usercard.usercard")
+        .gainReward(user, rewardType, quantity);
 
       return {
         objectives_counter: data.objectives_counter,
         updatedRewards,
       };
     },
+    // DONE
     async claimObjective(ctx) {
       const objectiveId = ctx.params.id;
       const user = await getUser(ctx.state.user.id);
       const user_objectives = user.objectives_json || {};
-      const objective = await strapi
-        .query("objective")
-        .findOne({ id: objectiveId });
 
-      if (objective.requirement == "login") {
-        user_objectives[objective.id] = {
-          progress: 1,
-          isCollected: false,
-        };
-      }
+      const objective = await strapi.db
+        .query("api::objective.objective")
+        .findOne({
+          where: { id: objectiveId },
+        });
 
       if (!objective) {
         ctx.throw(400, `This objective does not exist`);
@@ -535,76 +488,49 @@ module.exports = createCoreController(
         ctx.throw(400, `This objective is not completed yet!`);
       }
 
-      if (objective.time_type === "daily") {
-        const distance = getTime(user_objectives[objective.id].lastCompleted);
-        if (distance > 0) {
-          ctx.throw(
-            400,
-            `You have already claimed this objective!, Wait for ${
-              distance / 1000 / 60 / 60
-            } hours`
-          );
-        }
-      }
-
-      if (objective.time_type === "weekly") {
-        // const distance = dateMidnight + 1000 * 60 * 60 * 24 * 6 - lastCompleted;
-        const distance = getTime(
-          user_objectives[objective.id].lastCompleted,
-          7
-        );
-        if (distance > 0) {
-          ctx.throw(
-            400,
-            `You have already claimed this objective!, Wait for ${
-              distance / 1000 / 60 / 60
-            } hours`
-          );
-        }
-      }
-
-      // ALL GOOD EXECUTE LOGIC ->
-
       // SAVE PROGRESS
       const updated_user_objectives = {
         ...user_objectives,
         [objective.id]: {
-          ...user_objectives[objective.id],
           isCollected: true,
           progress: objective.requirement !== "login" ? 0 : 1,
         },
       };
 
-      const data = await strapi.plugins["users-permissions"].services.user.edit(
-        { id: user.id },
-        {
-          objectives_json: updated_user_objectives,
-        }
-      );
+      const payload = { objectives_json: updated_user_objectives };
+      console.log(payload);
+
+      const data = await updateUser(user.id, payload);
+
       // GAIN REWARDS SERVICE TRIGGER
-      const rewardType = objective.reward;
+      const rewardType = objective.reward_type;
       const quantity = objective.reward_amount;
 
-      const updatedRewards = await strapi.plugins[
-        "users-permissions"
-      ].services.user.gainReward(user, rewardType, quantity);
+      const updatedRewards = await strapi
+        .service("api::usercard.usercard")
+        .gainReward(user, rewardType, quantity);
 
       return {
         user_objectives: data.objectives_json,
         updatedRewards,
       };
     },
+    // DONE
     async openPack(ctx) {
-      const user = await getUser(ctx.state.user.id, ["expansions"]);
+      const user = await getUser(ctx.state.user.id);
       const boxId = parseInt(ctx.params.id);
-      const lootBox = await strapi
-        .query("box")
-        .findOne({ id: boxId }, [
-          "expansion",
-          "expansion.cards",
-          "image",
-          "image.url",
-        ]);
+
+      const lootBox = await strapi.db.query("api::box.box").findOne({
+        where: { id: boxId },
+        populate: {
+          expansion: {
+            populate: {
+              cards: true,
+            },
+          },
+          image: true,
+        },
+      });
 
       const boxCount = user.boxes[boxId];
 
@@ -616,13 +542,18 @@ module.exports = createCoreController(
         return ctx.throw(400, "You have 0 loot boxes");
       }
 
-      const hasExpansion = strapi.config.utils.filterBy(
+      const filterBy = (array, value, identifier = "id") => {
+        return array.filter((item) => item[identifier] === value)[0];
+      };
+
+      const hasExpansion = filterBy(
         user.expansions,
         lootBox.expansion.id,
         "id"
       );
 
-      if (!hasExpansion) {
+      // hardcore 2... pro expansion @newexp
+      if (!hasExpansion && lootBox.expansion.id === 2) {
         return ctx.throw(400, "You do not have this expansion purchased yet.");
       }
 
@@ -679,13 +610,13 @@ module.exports = createCoreController(
       async function updateUserRelations(cardsDropped) {
         const results = [];
         for (const card of cardsDropped) {
-          const updatedCard = await strapi.plugins[
-            "users-permissions"
-          ].services.user.gainCard(
-            user,
-            { card: card, quantity: getRandomQuantity(3, 6) }, // payload
-            "fromBox"
-          );
+          const updatedCard = await strapi
+            .service("api::usercard.usercard")
+            .gainCard(
+              user,
+              { card: card, quantity: getRandomQuantity(3, 6) }, // payload
+              "fromBox"
+            );
           results.push(updatedCard);
         }
         return results;
@@ -695,15 +626,19 @@ module.exports = createCoreController(
 
       const cardIds = data.map((c) => c.card);
 
-      const cardDetails = await strapi
-        .query("card")
-        .find({ id_in: cardIds }, [
-          "realm",
-          "realm.background",
-          "realm.background.url",
-          "image",
-          "image.url",
-        ]);
+      const cardDetails = await strapi.db.query("api::card.card").findMany({
+        where: {
+          id: {
+            $in: cardIds,
+          },
+        },
+        populate: {
+          realm: {
+            populate: { image: true },
+          },
+          image: true,
+        },
+      });
 
       const finalResult = data.map((c) => {
         const oldCard = c;
@@ -719,11 +654,10 @@ module.exports = createCoreController(
         results: finalResult,
       };
       // trigger achievement api
-      await strapi.plugins[
-        "users-permissions"
-      ].services.user.achievementTrigger(user, "open_pack");
+      await strapi
+        .service("api::usercard.usercard")
+        .achievementTrigger(user, "open_pack");
 
-      // dispatch(ctx, finalData, "LOOT_BOX_OPENED");
       return { data: finalData };
     },
     // DONE
@@ -902,8 +836,6 @@ module.exports = createCoreController(
         const hasBundle =
           user.orders.filter((order) => order.product.id === product.id)
             .length > 0;
-
-        console.log("user.orders", user.orders);
 
         if (hasBundle) {
           return ctx.badRequest("You have already purchased this bundle.");
