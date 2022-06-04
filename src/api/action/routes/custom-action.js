@@ -6,5 +6,10 @@ module.exports = {
       path: "/actions/complete/:id",
       handler: "action.complete",
     },
+    {
+      method: "PUT",
+      path: "/actions/test/:id",
+      handler: "action.test",
+    },
   ],
 };

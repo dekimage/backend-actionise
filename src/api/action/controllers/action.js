@@ -61,4 +61,63 @@ module.exports = createCoreController("api::action.action", ({ strapi }) => ({
       notification: "ACTION_UPDATED",
     };
   },
+  async test(ctx) {
+    const entry = await strapi.db
+      .query("plugin::users-permissions.user")
+      .update({
+        where: { id: 3 },
+        data: {
+          username: "Satkar",
+          boxes: {
+            1: 1,
+            2: 0,
+            3: 0,
+            4: 0,
+          },
+          objectives_json: {
+            1: {
+              progress: 0,
+              isCollected: false,
+            },
+            2: {
+              progress: 0,
+              isCollected: false,
+            },
+            3: {
+              progress: 0,
+              isCollected: false,
+            },
+            4: {
+              progress: 0,
+              isCollected: false,
+            },
+          },
+          objectives_counter: {
+            daily: {
+              1: false,
+              2: false,
+              3: false,
+              4: false,
+            },
+            weekly: {
+              1: false,
+              2: false,
+              3: false,
+              4: false,
+            },
+          },
+          rewards_tower: {
+            1: false,
+          },
+          friends_rewards: {
+            1: false,
+          },
+          streak_rewards: {
+            1: false,
+          },
+        },
+      });
+    console.log(entry);
+    return entry;
+  },
 }));

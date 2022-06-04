@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 module.exports = {
   /**
@@ -16,5 +16,72 @@ module.exports = {
    * This gives you an opportunity to set up your data model,
    * run jobs, or perform some special logic.
    */
-  bootstrap(/*{ strapi }*/) {},
+  bootstrap({ strapi }) {
+    strapi.db.lifecycles.subscribe({
+      models: ["plugin::users-permissions.user"],
+
+      // your lifecycle hooks
+      async afterCreate(event) {
+        const { result } = event;
+        const user = await strapi.db
+          .query("plugin::users-permissions.user")
+          .update({
+            where: { id: result.id },
+            data: {
+              username: "Satkar",
+              highest_buddy_shares: 0,
+              highest_streak_count: 0,
+              boxes: {
+                1: 1,
+                2: 0,
+                3: 0,
+                4: 0,
+              },
+              objectives_json: {
+                1: {
+                  progress: 0,
+                  isCollected: false,
+                },
+                2: {
+                  progress: 0,
+                  isCollected: false,
+                },
+                3: {
+                  progress: 0,
+                  isCollected: false,
+                },
+                4: {
+                  progress: 0,
+                  isCollected: false,
+                },
+              },
+              objectives_counter: {
+                daily: {
+                  1: false,
+                  2: false,
+                  3: false,
+                  4: false,
+                },
+                weekly: {
+                  1: false,
+                  2: false,
+                  3: false,
+                  4: false,
+                },
+              },
+              rewards_tower: {
+                1: false,
+              },
+              friends_rewards: {
+                1: false,
+              },
+              streak_rewards: {
+                1: false,
+              },
+            },
+          });
+        return user;
+      },
+    });
+  },
 };

@@ -186,6 +186,20 @@
     },
     "friends_rewards": {
       "type": "json"
+    },
+    "reset_date": {
+      "type": "string"
+    },
+    "is_subscription_cancelled": {
+      "type": "boolean",
+      "default": false
+    },
+    "subscription_date": {
+      "type": "string"
+    },
+    "xp": {
+      "type": "integer",
+      "default": 0
     }
   }
 }

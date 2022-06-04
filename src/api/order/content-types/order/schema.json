@@ -4,7 +4,8 @@
   "info": {
     "singularName": "order",
     "pluralName": "orders",
-    "displayName": "order"
+    "displayName": "order",
+    "description": ""
   },
   "options": {
     "draftAndPublish": false
@@ -30,6 +31,14 @@
       "relation": "manyToOne",
       "target": "plugin::users-permissions.user",
       "inversedBy": "orders"
+    },
+    "payment_env": {
+      "type": "enumeration",
+      "enum": [
+        "android",
+        "apple",
+        "cpay"
+      ]
     }
   }
 }
