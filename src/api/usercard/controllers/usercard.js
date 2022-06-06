@@ -75,13 +75,8 @@ module.exports = createCoreController(
           energy: 3,
           reset_date: formatDate(today),
           objectives_counter: {
+            ...user.objectives_counter,
             daily: {
-              1: false,
-              2: false,
-              3: false,
-              4: false,
-            },
-            weekly: {
               1: false,
               2: false,
               3: false,
@@ -90,43 +85,42 @@ module.exports = createCoreController(
           },
           objectives_json: {
             ...user.objectives_json,
-            1: { progress: 0, isCollected: false },
-            3: { progress: 1, isCollected: false },
+            1: { progress: 1, isCollected: false },
+            3: { progress: 0, isCollected: false },
             4: { progress: 0, isCollected: false },
             5: { progress: 0, isCollected: false },
           },
         });
       }
       const data = await getUser(user.id, {
-        usercards: true,
+        usercards: {
+          populate: {
+            card: true,
+          },
+        },
         expansions: true,
         orders: true,
-        communityactions: true,
+        communityactions: {
+          populate: {
+            card: true,
+            steps: true,
+          },
+        },
         shared_by: true,
-        shared_buddies: true,
+        shared_buddies: {
+          populate: {
+            image: true,
+          },
+        },
         last_unlocked_cards: true,
         last_completed_cards: true,
-        followers: true,
+        followers: {
+          populate: {
+            image: true,
+          },
+        },
         followedBy: true,
       });
-      // const userWithMedia = await userQuery.findOne({ id: ctx.state.user.id }, [
-      //   "usercards",
-      //   "community_actions",
-      //   "community_actions.steps",
-      //   "community_actions.card",
-      //   "shared_buddies",
-      //   "shared_buddies.image",
-      //   "expansions",
-      //   "followers ",
-      //   "today_completed",
-      //   "followers ",
-      //   "last_collected_cards",
-      //   "level_rewards",
-      //   "followers",
-      //   "followers.image",
-      //   "image",
-      //   // "usercards.card", -> if I want to query deeper
-      // ]);
 
       return data;
     },

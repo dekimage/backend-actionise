@@ -62,7 +62,7 @@ module.exports = createCoreController(
       return action;
     },
     async delete(ctx) {
-      const user = ctx.state.user || { id: 1 };
+      const user = ctx.state.user;
       const actionId = ctx.params.id;
 
       const action = await strapi.db

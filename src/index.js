@@ -28,7 +28,6 @@ module.exports = {
           .update({
             where: { id: result.id },
             data: {
-              username: "Satkar",
               highest_buddy_shares: 0,
               highest_streak_count: 0,
               boxes: {
@@ -51,6 +50,22 @@ module.exports = {
                   isCollected: false,
                 },
                 4: {
+                  progress: 0,
+                  isCollected: false,
+                },
+                5: {
+                  progress: 0,
+                  isCollected: false,
+                },
+                6: {
+                  progress: 0,
+                  isCollected: false,
+                },
+                7: {
+                  progress: 0,
+                  isCollected: false,
+                },
+                8: {
                   progress: 0,
                   isCollected: false,
                 },
@@ -80,6 +95,18 @@ module.exports = {
               },
             },
           });
+        await strapi.db.query("api::usercard.usercard").create({
+          data: {
+            user: user.id,
+            card: 1,
+            quantity: 1,
+            completed: 0,
+            glory_points: 0,
+            is_unlocked: true,
+            is_new: false,
+            user_name: user.username,
+          },
+        });
         return user;
       },
     });
