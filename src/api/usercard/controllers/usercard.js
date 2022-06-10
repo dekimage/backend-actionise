@@ -491,7 +491,16 @@ module.exports = createCoreController(
         },
       };
 
-      const payload = { objectives_json: updated_user_objectives };
+      let payload = { objectives_json: updated_user_objectives };
+      if (
+        objective.requirement !== "login" &&
+        user.streak >= highest_streak_count
+      ) {
+        payload = {
+          objectives_json: updated_user_objectives,
+          highest_streak_count: user.highest_streak_count + 1,
+        };
+      }
       console.log(payload);
 
       const data = await updateUser(user.id, payload);
