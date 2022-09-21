@@ -1,0 +1,29 @@
+{
+  "collectionName": "components_courses_course_details",
+  "info": {
+    "displayName": "course_details",
+    "icon": "align-right",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "duration": {
+      "type": "integer"
+    },
+    "actions": {
+      "type": "integer"
+    },
+    "concepts": {
+      "type": "integer"
+    },
+    "questions": {
+      "type": "integer"
+    },
+    "sessions": {
+      "type": "integer"
+    },
+    "days": {
+      "type": "integer"
+    }
+  }
+}

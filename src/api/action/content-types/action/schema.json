@@ -54,6 +54,26 @@
       "type": "component",
       "repeatable": true,
       "component": "action.step"
+    },
+    "questions": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::question.question",
+      "inversedBy": "actions"
+    },
+    "problems": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::problem.problem",
+      "mappedBy": "actions"
+    },
+    "tips": {
+      "type": "richtext"
+    },
+    "stats": {
+      "type": "component",
+      "repeatable": false,
+      "component": "action.action-stats"
     }
   }
 }

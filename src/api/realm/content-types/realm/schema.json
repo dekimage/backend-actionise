@@ -45,6 +45,12 @@
       "relation": "manyToOne",
       "target": "api::expansion.expansion",
       "inversedBy": "realms"
+    },
+    "problems": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::problem.problem",
+      "mappedBy": "realm"
     }
   }
 }

@@ -1,0 +1,22 @@
+{
+  "collectionName": "components_action_action_stats",
+  "info": {
+    "displayName": "action_stats",
+    "icon": "tachometer-alt"
+  },
+  "options": {},
+  "attributes": {
+    "difficulty": {
+      "type": "integer"
+    },
+    "fun": {
+      "type": "integer"
+    },
+    "short_term": {
+      "type": "integer"
+    },
+    "long_term": {
+      "type": "integer"
+    }
+  }
+}

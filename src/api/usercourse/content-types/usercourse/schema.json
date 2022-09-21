@@ -1,0 +1,47 @@
+{
+  "kind": "collectionType",
+  "collectionName": "usercourses",
+  "info": {
+    "singularName": "usercourse",
+    "pluralName": "usercourses",
+    "displayName": "usercourse",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "users_permissions_user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "usercourses"
+    },
+    "course": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::course.course"
+    },
+    "username": {
+      "type": "string"
+    },
+    "last_completed_day": {
+      "type": "integer"
+    },
+    "last_completed_content": {
+      "type": "integer"
+    },
+    "is_purchased": {
+      "type": "boolean",
+      "default": false
+    },
+    "rewards_claimed": {
+      "type": "integer"
+    },
+    "times_restarted": {
+      "type": "integer",
+      "default": 0
+    }
+  }
+}

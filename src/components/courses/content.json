@@ -1,0 +1,51 @@
+{
+  "collectionName": "components_courses_contents",
+  "info": {
+    "displayName": "Content",
+    "icon": "align-justify",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "storyline": {
+      "type": "richtext"
+    },
+    "timer": {
+      "type": "integer",
+      "default": 0
+    },
+    "action": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::action.action"
+    },
+    "card": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::card.card"
+    },
+    "question": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::question.question"
+    },
+    "duration": {
+      "type": "integer"
+    },
+    "index": {
+      "type": "integer"
+    },
+    "title": {
+      "type": "string"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "technique",
+        "training",
+        "concept",
+        "question"
+      ]
+    }
+  }
+}

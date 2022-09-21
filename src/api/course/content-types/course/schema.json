@@ -1,0 +1,89 @@
+{
+  "kind": "collectionType",
+  "collectionName": "courses",
+  "info": {
+    "singularName": "course",
+    "pluralName": "courses",
+    "displayName": "Course",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "problems": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::problem.problem",
+      "mappedBy": "course"
+    },
+    "description": {
+      "type": "text"
+    },
+    "students": {
+      "type": "integer"
+    },
+    "days": {
+      "type": "component",
+      "repeatable": true,
+      "component": "courses.day"
+    },
+    "price": {
+      "type": "decimal"
+    },
+    "discount": {
+      "type": "decimal"
+    },
+    "what_you_learn": {
+      "type": "richtext"
+    },
+    "requirements": {
+      "type": "richtext"
+    },
+    "who_is_for": {
+      "type": "richtext"
+    },
+    "what_you_complete": {
+      "type": "richtext"
+    },
+    "course_details": {
+      "type": "component",
+      "repeatable": false,
+      "component": "courses.course-details"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "rating": {
+      "type": "decimal",
+      "default": 5
+    },
+    "rating_amount": {
+      "type": "integer"
+    },
+    "full_price": {
+      "type": "decimal"
+    },
+    "reviews": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::review.review",
+      "mappedBy": "course"
+    },
+    "last_updated": {
+      "type": "date"
+    }
+  }
+}

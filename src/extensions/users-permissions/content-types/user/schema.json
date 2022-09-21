@@ -200,6 +200,18 @@
     "xp": {
       "type": "integer",
       "default": 0
+    },
+    "usercourses": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::usercourse.usercourse",
+      "mappedBy": "users_permissions_user"
+    },
+    "review": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::review.review",
+      "inversedBy": "users_permissions_user"
     }
   }
 }

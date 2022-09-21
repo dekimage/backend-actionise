@@ -98,6 +98,21 @@ module.exports = createCoreController(
             card: true,
           },
         },
+        usercourses: {
+          populate: {
+            course: {
+              populate: {
+                image: true,
+                course_details: true,
+                days: {
+                  populate: {
+                    contents: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         expansions: true,
         orders: true,
         communityactions: {

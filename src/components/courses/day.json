@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_courses_days",
+  "info": {
+    "displayName": "Day",
+    "icon": "calendar-day",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "contents": {
+      "type": "component",
+      "repeatable": true,
+      "component": "courses.content"
+    },
+    "index": {
+      "type": "integer"
+    }
+  }
+}
