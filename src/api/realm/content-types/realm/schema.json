@@ -51,6 +51,12 @@
       "relation": "oneToMany",
       "target": "api::problem.problem",
       "mappedBy": "realm"
+    },
+    "courses": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::course.course",
+      "mappedBy": "realm"
     }
   }
 }

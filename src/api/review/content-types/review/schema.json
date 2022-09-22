@@ -22,7 +22,7 @@
       "type": "relation",
       "relation": "oneToOne",
       "target": "plugin::users-permissions.user",
-      "inversedBy": "review"
+      "mappedBy": "review"
     },
     "course": {
       "type": "relation",

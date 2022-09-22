@@ -212,6 +212,12 @@
       "relation": "oneToOne",
       "target": "api::review.review",
       "inversedBy": "users_permissions_user"
+    },
+    "actions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::action.action",
+      "mappedBy": "user"
     }
   }
 }

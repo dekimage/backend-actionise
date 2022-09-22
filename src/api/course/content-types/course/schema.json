@@ -84,6 +84,12 @@
     },
     "last_updated": {
       "type": "date"
+    },
+    "realm": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::realm.realm",
+      "inversedBy": "courses"
     }
   }
 }
