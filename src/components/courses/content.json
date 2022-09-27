@@ -41,8 +41,7 @@
     "type": {
       "type": "enumeration",
       "enum": [
-        "technique",
-        "training",
+        "action",
         "concept",
         "question"
       ]
