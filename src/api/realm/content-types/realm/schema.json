@@ -57,6 +57,12 @@
       "relation": "oneToMany",
       "target": "api::course.course",
       "mappedBy": "realm"
+    },
+    "books": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::book.book",
+      "mappedBy": "realm"
     }
   }
 }

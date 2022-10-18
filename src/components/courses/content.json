@@ -45,6 +45,13 @@
         "concept",
         "question"
       ]
+    },
+    "responses": {
+      "type": "json"
+    },
+    "is_ghost": {
+      "type": "boolean",
+      "default": false
     }
   }
 }

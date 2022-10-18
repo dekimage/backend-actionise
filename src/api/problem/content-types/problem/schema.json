@@ -74,6 +74,12 @@
       "relation": "manyToOne",
       "target": "api::realm.realm",
       "inversedBy": "problems"
+    },
+    "books": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::book.book",
+      "inversedBy": "problems"
     }
   }
 }

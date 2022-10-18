@@ -1,0 +1,67 @@
+{
+  "kind": "collectionType",
+  "collectionName": "books",
+  "info": {
+    "singularName": "book",
+    "pluralName": "books",
+    "displayName": "book"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "author": {
+      "type": "string"
+    },
+    "image": {
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ],
+      "type": "media",
+      "multiple": false
+    },
+    "realm": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::realm.realm",
+      "inversedBy": "books"
+    },
+    "actions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::action.action",
+      "mappedBy": "book"
+    },
+    "cards": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::card.card",
+      "mappedBy": "books"
+    },
+    "course": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::course.course",
+      "inversedBy": "books"
+    },
+    "problems": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::problem.problem",
+      "inversedBy": "books"
+    },
+    "affiliate_link": {
+      "type": "string"
+    },
+    "ideas": {
+      "type": "richtext"
+    }
+  }
+}

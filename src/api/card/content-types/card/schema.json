@@ -86,6 +86,20 @@
       "type": "component",
       "repeatable": true,
       "component": "slides.slide"
+    },
+    "books": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::book.book",
+      "inversedBy": "cards"
+    },
+    "days": {
+      "type": "component",
+      "repeatable": true,
+      "component": "courses.day"
+    },
+    "cost": {
+      "type": "integer"
     }
   }
 }

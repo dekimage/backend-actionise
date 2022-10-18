@@ -70,16 +70,20 @@
     "tips": {
       "type": "richtext"
     },
-    "stats": {
-      "type": "component",
-      "repeatable": false,
-      "component": "action.action-stats"
-    },
     "user": {
       "type": "relation",
       "relation": "manyToOne",
       "target": "plugin::users-permissions.user",
       "inversedBy": "actions"
+    },
+    "book": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::book.book",
+      "inversedBy": "actions"
+    },
+    "examples": {
+      "type": "richtext"
     }
   }
 }

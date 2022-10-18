@@ -98,6 +98,9 @@ module.exports = createCoreController(
             card: true,
           },
         },
+        favorite_actions: {
+          populate: true,
+        },
         actions: {
           populate: true,
           populate: {
@@ -158,17 +161,18 @@ module.exports = createCoreController(
       const user = await getUser(ctx.state.user.id, {
         last_completed_cards: true,
         last_unlocked_cards: true,
+        actions: true,
+        favorite_actions: true,
       });
 
       const card_id = ctx.params.id;
       const action = ctx.request.body.action;
       if (
-        action !== "new_disable" &&
-        action !== "new_activate" &&
         action !== "complete" &&
-        action !== "upgrade" &&
         action !== "unlock" &&
-        action !== "favorite"
+        action !== "favorite_card" &&
+        action !== "complete_action" &&
+        action !== "favorite_action"
       ) {
         ctx.throw(400, "You can't update the card with unknown intent.");
       }
@@ -182,6 +186,19 @@ module.exports = createCoreController(
       // updatedUserCardRelation["updated_by"] = user.id;
       // updatedUserCardRelation.users_permissions_user.id;
       return updatedUserCardRelation;
+    },
+    async updateTutorial(ctx) {
+      const user = await getUser(ctx.state.user.id);
+      const tutorialStep = ctx.params.tutorialStep;
+      if (!tutorialStep || tutorialStep < 0 || tutorialStep > 10) {
+        return ctx.badRequest("Invalid Tutorial Step");
+      }
+      const upload = {
+        tutorial_step: tutorialStep,
+      };
+
+      const data = await updateUser(user.id, upload);
+      return data.tutorial_step;
     },
     // DONE
     async collectStreakReward(ctx) {

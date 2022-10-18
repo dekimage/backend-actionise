@@ -17,6 +17,11 @@ module.exports = {
     },
     {
       method: "PUT",
+      path: "/usercard/update-tutorial/:tutorialStep",
+      handler: "usercard.updateTutorial",
+    },
+    {
+      method: "PUT",
       path: "/usercard/collect-friends-reward/:id",
       handler: "usercard.collectFriendsReward",
     },

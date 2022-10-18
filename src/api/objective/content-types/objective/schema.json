@@ -4,7 +4,8 @@
   "info": {
     "singularName": "objective",
     "pluralName": "objectives",
-    "displayName": "objective"
+    "displayName": "objective",
+    "description": ""
   },
   "options": {
     "draftAndPublish": false
@@ -57,34 +58,9 @@
     "requirement": {
       "type": "enumeration",
       "enum": [
-        "complete",
-        "review",
         "login",
-        "streak",
-        "level",
-        "favorite",
-        "collect_new",
-        "collect_common",
-        "collect_rare",
-        "collect_epic",
-        "collect_legendary",
-        "collect_prestige",
-        "upgrade_card",
-        "upgrade_common",
-        "upgrade_rare",
-        "upgrade_epic",
-        "upgrade_legendary",
-        "upgrade_prestige",
-        "share_card",
-        "add_friend",
-        "endorce_friend",
-        "purchase_gems",
-        "purchase_premium",
-        "open_pack",
-        "open_pack_basic",
-        "open_pack_basic_2",
-        "open_pack_premium",
-        "open_pack_premium_2"
+        "complete",
+        "action"
       ]
     }
   }

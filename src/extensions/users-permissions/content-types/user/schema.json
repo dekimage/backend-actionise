@@ -218,6 +218,15 @@
       "relation": "oneToMany",
       "target": "api::action.action",
       "mappedBy": "user"
+    },
+    "tutorial_step": {
+      "type": "integer",
+      "default": 1
+    },
+    "favorite_actions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::action.action"
     }
   }
 }
