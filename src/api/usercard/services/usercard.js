@@ -181,6 +181,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
             card: card.id,
             completed: 0,
             glory_points: 0,
+            is_unlocked: true,
             user_name: user.username,
           },
         });
