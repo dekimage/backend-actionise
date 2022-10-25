@@ -173,6 +173,12 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
         );
       }
       //if can -> create usercard relation first
+      const checkUserCardRelation = await strapi.db
+        .query("api::usercard.usercard")
+        .findOne({ where: { user: user.id, card: card_id } });
+      if (!!checkUserCardRelation) {
+        return ctx.throw(400, `You already have this card unlocked.`);
+      }
       const newUserCardRelation = await strapi.db
         .query("api::usercard.usercard")
         .create({
