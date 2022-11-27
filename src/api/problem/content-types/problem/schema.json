@@ -39,12 +39,6 @@
       "type": "integer",
       "default": 1
     },
-    "questions": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::question.question",
-      "inversedBy": "problems"
-    },
     "problems_related": {
       "type": "relation",
       "relation": "manyToMany",
@@ -79,6 +73,12 @@
       "type": "relation",
       "relation": "manyToMany",
       "target": "api::book.book",
+      "inversedBy": "problems"
+    },
+    "cards": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::card.card",
       "inversedBy": "problems"
     }
   }

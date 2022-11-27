@@ -6,11 +6,6 @@
   },
   "options": {},
   "attributes": {
-    "box": {
-      "type": "relation",
-      "relation": "oneToOne",
-      "target": "api::box.box"
-    },
     "quantity": {
       "type": "integer"
     },

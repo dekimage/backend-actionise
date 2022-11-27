@@ -1,0 +1,82 @@
+{
+  "kind": "collectionType",
+  "collectionName": "artifacts",
+  "info": {
+    "singularName": "artifact",
+    "pluralName": "artifacts",
+    "displayName": "Artifact",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "cards_complete",
+        "level",
+        "streak",
+        "buddy_share",
+        "action_complete",
+        "dungeon_complete",
+        "raid_complete",
+        "random",
+        "card_unlock",
+        "daily_objectives_complete",
+        "weekly_objectives_complete"
+      ]
+    },
+    "rarity": {
+      "type": "enumeration",
+      "enum": [
+        "common",
+        "rare",
+        "epic",
+        "legendary"
+      ]
+    },
+    "require": {
+      "type": "integer"
+    },
+    "obtained_by_description": {
+      "type": "text"
+    },
+    "friendreward": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::friendreward.friendreward",
+      "inversedBy": "artifact"
+    },
+    "levelreward": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::levelreward.levelreward",
+      "inversedBy": "artifact"
+    },
+    "streakreward": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::streakreward.streakreward",
+      "inversedBy": "artifact"
+    },
+    "short_name": {
+      "type": "string"
+    }
+  }
+}

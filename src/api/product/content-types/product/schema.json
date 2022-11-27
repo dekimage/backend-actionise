@@ -39,6 +39,8 @@
     "type": {
       "type": "enumeration",
       "enum": [
+        "energy",
+        "stars",
         "gems",
         "bundle",
         "subscription"

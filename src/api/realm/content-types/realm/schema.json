@@ -40,12 +40,6 @@
       "target": "api::card.card",
       "mappedBy": "realm"
     },
-    "expansion": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::expansion.expansion",
-      "inversedBy": "realms"
-    },
     "problems": {
       "type": "relation",
       "relation": "oneToMany",

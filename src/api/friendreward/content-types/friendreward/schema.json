@@ -4,7 +4,8 @@
   "info": {
     "singularName": "friendreward",
     "pluralName": "friendrewards",
-    "displayName": "friendreward"
+    "displayName": "friendreward",
+    "description": ""
   },
   "options": {
     "draftAndPublish": false
@@ -21,6 +22,12 @@
       "type": "relation",
       "relation": "oneToOne",
       "target": "api::card.card"
+    },
+    "artifact": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::artifact.artifact",
+      "mappedBy": "friendreward"
     }
   }
 }

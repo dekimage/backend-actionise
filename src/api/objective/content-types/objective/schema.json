@@ -42,17 +42,7 @@
       "enum": [
         "streak",
         "stars",
-        "gems",
-        "xp",
-        "card_common",
-        "card_rare",
-        "card_epic",
-        "card_legendary",
-        "card_any",
-        "box_1",
-        "box_2",
-        "box_3",
-        "box_4"
+        "loot"
       ]
     },
     "requirement": {
@@ -60,8 +50,14 @@
       "enum": [
         "login",
         "complete",
-        "action"
+        "action",
+        "master_card",
+        "daily",
+        "weekly"
       ]
+    },
+    "is_premium": {
+      "type": "boolean"
     }
   }
 }

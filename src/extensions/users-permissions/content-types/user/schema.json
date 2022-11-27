@@ -138,11 +138,6 @@
       "target": "plugin::users-permissions.user",
       "mappedBy": "shared_by"
     },
-    "expansions": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::expansion.expansion"
-    },
     "last_unlocked_cards": {
       "type": "relation",
       "relation": "oneToMany",
@@ -227,6 +222,29 @@
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::action.action"
+    },
+    "artifacts": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::artifact.artifact"
+    },
+    "stats": {
+      "type": "json"
+    },
+    "favorite_cards": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::card.card"
+    },
+    "last_completed_actions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::action.action"
+    },
+    "claimed_artifacts": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::artifact.artifact"
     }
   }
 }

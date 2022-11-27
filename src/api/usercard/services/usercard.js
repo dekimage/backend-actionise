@@ -2,6 +2,37 @@
 
 const { createCoreService } = require("@strapi/strapi").factories;
 
+const determineRarity = () => {
+  const drop_table = {
+    common: 60,
+    rare: 85,
+    epic: 95,
+    legendary: 100,
+  };
+  const randomNumber = Math.floor(Math.random() * 101);
+  for (const rarity in drop_table) {
+    if (randomNumber <= drop_table[rarity]) {
+      return rarity;
+    }
+  }
+};
+
+const starAmountByRarity = {
+  common: 25,
+  rare: 50,
+  epic: 100,
+  legendary: 200,
+};
+function getRandomStars() {
+  const rarity = determineRarity();
+  const stars = starAmountByRarity[rarity];
+  return stars;
+}
+// @calc
+function getXpLimit(level) {
+  return 100 + level * 10 * 1.6;
+}
+
 const sanitizeUser = (user) => {
   delete user["provider"];
   delete user["password"];
@@ -17,7 +48,7 @@ const sanitizeUser = (user) => {
 const updateUser = async (
   id,
   payload,
-  populate = { usercards: true, expansions: true, orders: true }
+  populate = { usercards: true, orders: true }
 ) => {
   const user = await strapi.db.query("plugin::users-permissions.user").update({
     where: { id: id },
@@ -37,28 +68,74 @@ const getUserCard = async (userId, cardId) => {
 
 module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
   //DONE
-  gainReward: async (user, rewardType, quantity) => {
-    // 3. XP UPDATE
-    if (rewardType === "xp") {
-      // @calc
-      function getXpLimit(level) {
-        return 100 + level * 10 * 1.6;
-      }
-      const xpLimit = getXpLimit(user.level);
-      if (user.xp + quantity > xpLimit) {
-        const payload = {
-          xp: user.xp + quantity - xpLimit,
-          level: user.level + 1,
-        };
-        const data = await updateUser(user.id, payload);
+  gainObjectiveRewards: async (user, objective) => {
+    let payload = {};
+    let artifactData = false;
+    let starsGained; // for return to frontend only
+    //1. XP (daily + 50, weekly + 250)
+    const xpPerObjective = { daily: 50, weekly: 250 };
+    const xpGained = xpPerObjective[objective.time_type];
+    const xpLimit = getXpLimit(user.level);
 
-        return {
-          rewardType: rewardType,
-          quantity: data[rewardType],
-        };
+    if (user.xp + xpGained > xpLimit) {
+      payload = {
+        xp: user.xp + xpGained - xpLimit,
+        level: user.level + 1,
+      };
+    } else {
+      payload = {
+        xp: user.xp + xpGained,
+      };
+    }
+
+    //2. Objective reward = stars or lootbox
+    if (objective.reward_type === "stars") {
+      payload = {
+        ...payload,
+        stars: user.stars + objective.reward_amount,
+      };
+      starsGained = objective.reward_amount;
+    }
+
+    //3. if lootbox - add stars + artifact %
+    if (objective.reward_type === "loot") {
+      //3.1. gain random stars
+      const randomStars = getRandomStars();
+      payload = {
+        ...payload,
+        stars: user.stars + randomStars,
+      };
+      starsGained = randomStars;
+
+      //3.2. gain artifact maybe 16.6% chance
+      const chanceToGainArtifact = 0.166;
+      const randomInt = Math.random();
+      // const shouldGainArtifact = randomInt >= chanceToGainArtifact;
+      const shouldGainArtifact = true;
+
+      if (shouldGainArtifact) {
+        artifactData = await strapi
+          .service("api::usercard.usercard")
+          .gainArtifact(user, 0, true);
       }
     }
-    // 4. GENERIC STARS/GEMS...
+
+    // wait
+    const data = await updateUser(user.id, payload);
+
+    //MODALS CAN BE ARRAY -> CONSTRUCTED WAY
+    return {
+      xp: xpGained,
+      level: payload.level,
+      stars: starsGained,
+      isLevelnew: user.xp + xpGained > xpLimit,
+      artifact: artifactData.artifact,
+    };
+
+    //2. Objective reward (stars/lootbox/...?)
+    //3. if lootbox - add stars + artifact %
+  },
+  gainReward: async (user, rewardType, quantity) => {
     const payload = {
       [rewardType]: user[rewardType] + quantity,
     };
@@ -68,7 +145,71 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
       quantity: data[rewardType],
     };
   },
+  gainArtifact: async (user, artifact_id, isRandom = false) => {
+    let artifactId = artifact_id;
+    let rewardArtifact = false;
+    if (isRandom) {
+      //craft random artifact
+      const artifactsByRarity = await strapi.db
+        .query("api::artifact.artifact")
+        .findMany({
+          where: {
+            rarity: determineRarity(),
+            type: "random",
+          },
+          populate: {
+            image: true,
+          },
+        });
 
+      console.log(artifactsByRarity);
+      console.log(determineRarity());
+
+      const userArtifactsById = user.artifacts.map((a) => a.id);
+
+      const notDiscoveredArtifacts = artifactsByRarity.filter((a) => {
+        if (!userArtifactsById.includes(a.id)) {
+          return a;
+        }
+      });
+
+      if (notDiscoveredArtifacts.length == 0) {
+        // nemna vekje od toj rarity artifacti?
+        return false;
+      }
+      //2. generate random number between 0 and cards.length
+      const randomId = Math.floor(
+        Math.random() * notDiscoveredArtifacts.length
+      );
+      //3. get that artifact -> add to artifacts collection
+      rewardArtifact = notDiscoveredArtifacts[randomId];
+      artifactId = rewardArtifact.id;
+    }
+
+    console.log("artifact id", artifactId);
+
+    // GENERIC GAIN ARTIFACT
+    const hasArtifact =
+      user.artifacts.filter((a) => a.id === artifactId).length > 0;
+
+    if (hasArtifact) {
+      console.log("return false??");
+      return false;
+      // return ctx.badRequest("You already have that artifact");
+    }
+    console.log("user artifacts, ", user.artifacts);
+    console.log("artifactId, ", artifactId);
+    const upload = { artifacts: [...user.artifacts, artifactId] };
+
+    const data = await updateUser(user.id, upload, { artifacts: true });
+
+    console.log(rewardArtifact);
+
+    return {
+      // modal: { data: rewardArtifact, type: "artifact" },
+      artifact: rewardArtifact,
+    };
+  },
   createOrder: async (user, product, API) => {
     const newOrder = await strapi.db.query("api::order.order").create({
       data: {
@@ -88,7 +229,6 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     newOrder.product = newOrder.product.id;
     return newOrder;
   },
-
   updateCard: async (user, card_id, action, ctx) => {
     const card = await strapi.db.query("api::card.card").findOne({
       where: {
@@ -124,16 +264,38 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     // 0. COMPLETE ACTION
     if (action === "complete_action") {
       if (user.energy > 0 || user.is_subscribed) {
-        await strapi
-          .service("api::usercard.usercard")
-          .gainReward(user, "energy", -1);
+        if (!user.is_subscribed) {
+          await strapi
+            .service("api::usercard.usercard")
+            .gainReward(user, "energy", -1);
+        }
 
+        //update recently completed
+        let newRecentActions = user.last_completed_actions || [];
+        newRecentActions.push(card_id);
+        if (newRecentActions.length > 10) {
+          newRecentActions.shift();
+        }
+        const update = {
+          last_completed_actions: newRecentActions,
+        };
+        const recentActionsUpdate = updateUser(user.id, update);
+
+        //update objectives
         await strapi
           .service("api::usercard.usercard")
-          .achievementTrigger(user, "action");
+          .objectivesTrigger(user, "action");
+
+        //artifact trigger
+        const artifactData = await strapi
+          .service("api::usercard.usercard")
+          .achievementTrigger(user, "action_complete");
 
         return {
-          achievement: "Action completed... ",
+          modal: artifactData && {
+            artifactData: artifactData.artifactData,
+            stats: artifactData.data,
+          },
         };
       }
     }
@@ -197,8 +359,18 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
       };
 
       await updateUser(user.id, payload);
-      return newUserCardRelation;
+      const artifactData = await strapi
+        .service("api::usercard.usercard")
+        .achievementTrigger(user, "card_unlock");
+      return {
+        usercard: newUserCardRelation,
+        modal: artifactData && {
+          artifactData: artifactData.artifactData,
+          stats: artifactData.data,
+        },
+      };
     }
+
     // check user relation for other actions...
     const userCardRelation = await generateUserCardRelation();
     if (!userCardRelation) {
@@ -212,6 +384,9 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
         // add to last completed - maybe as a servrice reusable?
         let new_last_completed = user.last_completed_cards;
         new_last_completed.push(card_id);
+        if (new_last_completed.length > 10) {
+          new_last_completed.shift();
+        }
         const payload = { last_completed_cards: new_last_completed };
         await updateUser(user.id, payload);
         //---
@@ -220,26 +395,32 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
           .service("api::usercard.usercard")
           .gainReward(user, "energy", -1);
 
-        // UPDATE OBJECTIVES TRIGGER
-        await strapi
-          .service("api::usercard.usercard")
-          .achievementTrigger(user, "action");
-
         const update = {
           completed: userCardRelation.completed + 1,
           completed_at: Date.now(),
         };
 
-        const data = await strapi.db.query("api::usercard.usercard").update({
-          where: { user: user.id, card: card_id },
-          data: update,
-        });
+        const usercardUpdated = await strapi.db
+          .query("api::usercard.usercard")
+          .update({
+            where: { user: user.id, card: card_id },
+            data: update,
+          });
 
+        //update objectives
+        await strapi
+          .service("api::usercard.usercard")
+          .objectivesTrigger(user, "complete");
+
+        //update artifacts
+        const artifactData = await strapi
+          .service("api::usercard.usercard")
+          .achievementTrigger(user, "cards_complete");
         return {
-          data,
-          // think of structured way to ping back notifications/toasters/modals
-          notification: {
-            trigger: "achiuevmeent?",
+          usercard: usercardUpdated,
+          modal: artifactData && {
+            artifactData: artifactData.artifactData,
+            stats: artifactData.data,
           },
         };
 
@@ -258,10 +439,96 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
         where: { user: user.id, card: card_id },
         data: update,
       });
+
+      // EXTRA LOGIC DUPL;ICATE TO SAVE FAVORITE
+
+      let newFavoriteCards = user.favorite_cards || [];
+
+      const alreadyFavorite =
+        newFavoriteCards.length > 0 &&
+        newFavoriteCards.filter((a) => parseInt(a.id) == parseInt(card_id))
+          .length > 0;
+
+      if (alreadyFavorite) {
+        newFavoriteCards = newFavoriteCards.filter((a) => a.id != card_id);
+      } else {
+        newFavoriteCards.push(card_id);
+      }
+
+      const userUpdate = {
+        favorite_cards: newFavoriteCards,
+      };
+      const userData = updateUser(user.id, userUpdate);
+
       return data;
     }
   },
   achievementTrigger: async (user, requirement) => {
+    console.log(user.stats);
+    console.log(requirement);
+
+    let user_stats = user.stats || {
+      claimed_artifacts: 0,
+      cards_complete: 0,
+      action_complete: 0,
+      dungeon_complete: 0,
+      raid_complete: 0,
+      card_unlock: 0,
+      daily_objectives_complete: 0,
+      weekly_objectives_complete: 0,
+    };
+
+    const artifactTable = {
+      cards_complete: [1, 2],
+      action_complete: [1, 2, 4],
+      card_unlock: [1, 2],
+      daily_objectives_complete: [1, 2],
+      weekly_objectives_complete: [1, 2],
+      // dungeon_complete: [1, 2, 5, 10, 15, 20],
+      // raid_complete: [1, 2, 5, 10, 15, 20],
+    };
+    if (!artifactTable[requirement]) {
+      console.log("wrong type name??");
+      return false;
+    }
+    const statUpdated = user_stats[requirement] + 1;
+    const shouldGainArtifact =
+      artifactTable[requirement].filter((req) => req === statUpdated).length >
+      0;
+    console.log("shouldGainArtifact", shouldGainArtifact);
+    console.log("requirement", requirement);
+    console.log("require", statUpdated);
+
+    let artifact = false;
+    if (shouldGainArtifact) {
+      artifact = await strapi.db.query("api::artifact.artifact").findOne({
+        where: { type: requirement, require: statUpdated },
+      });
+
+      console.log(artifact);
+      const artifactData = await strapi
+        .service("api::usercard.usercard")
+        .gainArtifact(user, artifact.id);
+    }
+
+    const updated_user_stats = {
+      ...user_stats,
+      [requirement]: statUpdated,
+    };
+
+    const upload = {
+      stats: updated_user_stats,
+    };
+
+    const data = await updateUser(user.id, upload);
+    return {
+      data: data.stats,
+      artifactData: shouldGainArtifact && {
+        modal: { data: artifact, type: "artifact" },
+      },
+    };
+  },
+  objectivesTrigger: async (user, requirement) => {
     const objectives = await strapi.db
       .query("api::objective.objective")
       .findMany();

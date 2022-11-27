@@ -58,12 +58,6 @@
       "target": "api::realm.realm",
       "inversedBy": "cards"
     },
-    "expansion": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::expansion.expansion",
-      "inversedBy": "cards"
-    },
     "actions": {
       "type": "relation",
       "relation": "oneToMany",
@@ -100,6 +94,12 @@
     },
     "cost": {
       "type": "integer"
+    },
+    "problems": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::problem.problem",
+      "mappedBy": "cards"
     }
   }
 }

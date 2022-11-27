@@ -1,9 +1,24 @@
 module.exports = {
   routes: [
     {
+      method: "PUT",
+      path: "/usercard/reset-user",
+      handler: "usercard.resetUser",
+    },
+    {
       method: "GET",
       path: "/usercard/me",
       handler: "usercard.me",
+    },
+    {
+      method: "PUT",
+      path: "/usercard/update-tutorial/:tutorialStep",
+      handler: "usercard.updateTutorial",
+    },
+    {
+      method: "PUT",
+      path: "/usercard/claim-artifact/:id",
+      handler: "usercard.claimArtifact",
     },
     {
       method: "PUT",
@@ -17,11 +32,6 @@ module.exports = {
     },
     {
       method: "PUT",
-      path: "/usercard/update-tutorial/:tutorialStep",
-      handler: "usercard.updateTutorial",
-    },
-    {
-      method: "PUT",
       path: "/usercard/collect-friends-reward/:id",
       handler: "usercard.collectFriendsReward",
     },
@@ -29,21 +39,6 @@ module.exports = {
       method: "PUT",
       path: "/usercard/update-card/:id",
       handler: "usercard.updateCard",
-    },
-    {
-      method: "PUT",
-      path: "/usercard/purchase-box/:id",
-      handler: "usercard.purchaseLootBox",
-    },
-    {
-      method: "PUT",
-      path: "/usercard/open-pack/:id",
-      handler: "usercard.openPack",
-    },
-    {
-      method: "PUT",
-      path: "/usercard/purchase-expansion/:id",
-      handler: "usercard.purchaseExpansion",
     },
     {
       method: "PUT",
@@ -55,12 +50,7 @@ module.exports = {
       path: "/usercard/collect-objective-reward/:id",
       handler: "usercard.claimObjective",
     },
-    //---
-    {
-      method: "PUT",
-      path: "/usercard/collect-objective-counter-reward/:id",
-      handler: "usercard.claimObjectiveCounter",
-    },
+
     {
       method: "PUT",
       path: "/usercard/cancel-subscription/:id",

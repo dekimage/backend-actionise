@@ -24,11 +24,6 @@
       "relation": "oneToOne",
       "target": "api::card.card"
     },
-    "question": {
-      "type": "relation",
-      "relation": "oneToOne",
-      "target": "api::question.question"
-    },
     "duration": {
       "type": "integer"
     },

@@ -55,12 +55,6 @@
       "repeatable": true,
       "component": "action.step"
     },
-    "questions": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::question.question",
-      "inversedBy": "actions"
-    },
     "problems": {
       "type": "relation",
       "relation": "manyToMany",

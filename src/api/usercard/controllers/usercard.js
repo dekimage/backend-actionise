@@ -31,7 +31,6 @@ const getUserCard = async (userId, cardId) => {
 const getUser = async (id, populate = {}) => {
   const defaultPopulate = {
     usercards: true,
-    expansions: true,
     orders: true,
   };
   const entry = await strapi.db
@@ -45,7 +44,7 @@ const getUser = async (id, populate = {}) => {
 };
 
 const updateUser = async (id, payload, populate = {}) => {
-  const defaultPopulate = { usercards: true, expansions: true, orders: true };
+  const defaultPopulate = { usercards: true,  orders: true };
   const user = await strapi.db.query("plugin::users-permissions.user").update({
     where: { id: id },
     data: payload,
@@ -57,6 +56,26 @@ const updateUser = async (id, payload, populate = {}) => {
 module.exports = createCoreController(
   "api::usercard.usercard",
   ({ strapi }) => ({
+    async resetUser(ctx) {
+      const user = ctx.state.user;
+      let payload = {
+        objectives_json: {
+          1: { progress: 5, isCollected: false },
+          2: { progress: 5, isCollected: false },
+          3: { progress: 5, isCollected: false },
+          4: { progress: 5, isCollected: false },
+          5: { progress: 5, isCollected: false },
+          6: { progress: 5, isCollected: false },
+          7: { progress: 5, isCollected: false },
+          8: { progress: 5, isCollected: false },
+        },
+        streak_rewards: {},
+        friends_rewards: {},
+        rewards_tower: {},
+      };
+      const data = updateUser(user.id, payload);
+      return data;
+    },
     //DONE
     async me(ctx) {
       const user = ctx.state.user;
@@ -66,6 +85,11 @@ module.exports = createCoreController(
           { messages: [{ id: "No authorization header was found" }] },
         ]);
       }
+
+      const artifacts_count = await strapi.db
+        .query("api::artifact.artifact")
+        .count();
+      const cards_count = await strapi.db.query("api::card.card").count();
 
       const today = new Date();
       const isRestarted = formatDate(today) === user.reset_date;
@@ -101,6 +125,15 @@ module.exports = createCoreController(
         favorite_actions: {
           populate: true,
         },
+        artifacts: {
+          populate: true,
+          populate: {
+            image: true,
+          },
+        },
+        claimed_artifacts: {
+          populate: true,
+        },
         actions: {
           populate: true,
           populate: {
@@ -130,7 +163,7 @@ module.exports = createCoreController(
             },
           },
         },
-        expansions: true,
+        
         orders: true,
         communityactions: {
           populate: {
@@ -153,8 +186,8 @@ module.exports = createCoreController(
         },
         followedBy: true,
       });
-
-      return data;
+      const userDataModified = { ...data, artifacts_count, cards_count };
+      return userDataModified;
     },
     // DONE
     async updateCard(ctx) {
@@ -163,6 +196,7 @@ module.exports = createCoreController(
         last_unlocked_cards: true,
         actions: true,
         favorite_actions: true,
+        artifacts: true,
       });
 
       const card_id = ctx.params.id;
@@ -202,7 +236,10 @@ module.exports = createCoreController(
     },
     // DONE
     async collectStreakReward(ctx) {
-      const user = await getUser(ctx.state.user.id, { shared_buddies: true });
+      const user = await getUser(ctx.state.user.id, {
+        shared_buddies: true,
+        artifacts: true,
+      });
 
       const streakCount = ctx.params.id;
 
@@ -210,7 +247,7 @@ module.exports = createCoreController(
         .query("api::streakreward.streakreward")
         .findOne({
           where: { streak_count: streakCount },
-          populate: { reward_card: true, reward_box: true },
+          populate: { reward_card: true, artifact: true },
         });
 
       let userRewards = user.streak_rewards || {};
@@ -219,7 +256,7 @@ module.exports = createCoreController(
         return ctx.badRequest("This streak reward does not exist.");
       }
 
-      if (user.highest_streak_count < streakReward.streak_count) {
+      if ((user.highest_streak_count || 0) < streakReward.streak_count) {
         return ctx.badRequest(
           "Your streak is not high enough yet to unlock this reward."
         );
@@ -237,15 +274,30 @@ module.exports = createCoreController(
       };
 
       const data = await updateUser(user.id, upload);
-
       // GAIN REWARDS SERVICE TRIGGER
-      if (streakReward.reward_card) {
+
+      let updatedRewards;
+
+      // GAIN STARS
+      if (streakReward.reward_type === "stars") {
+        updatedRewards = await strapi
+          .service("api::usercard.usercard")
+          .gainReward(user, "stars", streakReward.reward_amount);
+
+        return {
+          streak_count: data.streak_count,
+          updatedRewards,
+        };
+      }
+
+      // GAIN CARD
+      if (streakReward.reward_type === "card") {
         const payload = {
           card: streakReward.reward_card,
           quantity: streakReward.reward_amount,
         };
 
-        const updatedRewards = await strapi
+        updatedRewards = await strapi
           .service("api::usercard.usercard")
           .gainCard(user, payload, true);
 
@@ -255,24 +307,40 @@ module.exports = createCoreController(
         };
       }
 
-      if (streakReward.reward_box) {
-        const rewardType = `box_${streakReward.reward_box.id}`;
-        const quantity = streakReward.reward_amount;
-
-        const updatedRewards = await strapi
+      // GAIN ARTIFACT
+      if (streakReward.reward_type === "artifact") {
+        updatedRewards = await strapi
           .service("api::usercard.usercard")
-          .gainReward(user, rewardType, quantity);
+          .gainArtifact(user, streakReward.artifact.id);
 
+        // RETURN MODAL
         return {
+          modal: [
+            {
+              type: "rewards",
+              data: { stars: updatedRewards },
+            },
+            {
+              type: "artifact",
+              data: streakReward.artifact,
+            },
+          ],
           streak_count: data.streak_count,
           updatedRewards,
+          modal: streakReward.artifact && {
+            data: streakReward.artifact,
+            type: "artifact",
+          },
         };
       }
     },
     // DONE
     async collectFriendsReward(ctx) {
       // static data
-      const user = await getUser(ctx.state.user.id);
+      const user = await getUser(ctx.state.user.id, {
+        shared_buddies: true,
+        artifacts: true,
+      });
 
       const friendsCount = ctx.params.id;
 
@@ -280,7 +348,7 @@ module.exports = createCoreController(
         .query("api::friendreward.friendreward")
         .findOne({
           where: { friends_count: friendsCount },
-          populate: { reward_card: true },
+          populate: { reward_card: true, artifact: true },
         });
 
       let userRewards = user.friends_rewards || {};
@@ -308,25 +376,44 @@ module.exports = createCoreController(
 
       const data = await updateUser(user.id, upload);
 
+      let updatedRewards;
+
+      // TODO: ADD HERE WAY TO GAIN PREMIUM DAYS OR ORBS FOR BOTH USERS
+
       // GAIN REWARDS SERVICE TRIGGER
-      const payload = {
-        card: friendsReward.reward_card,
-        quantity: friendsReward.reward_amount,
-      };
+      if (friendsReward.artifact) {
+        updatedRewards = await strapi
+          .service("api::usercard.usercard")
+          .gainArtifact(user, friendsReward.artifact.id);
+      }
 
-      const updatedRewards = await strapi
-        .service("api::usercard.usercard")
-        .gainCard(user, payload, true);
+      // GAIN REWARDS SERVICE TRIGGER
+      // if (!friendsReward.artifact) {
+      //   const payload = {
+      //     card: friendsReward.reward_card,
+      //     quantity: friendsReward.reward_amount,
+      //   };
 
+      //   updatedRewards = await strapi
+      //     .service("api::usercard.usercard")
+      //     .gainCard(user, payload, true);
+      // }
+      // RETURN MODAL
       return {
         friends_count: data.friends_count,
         updatedRewards,
+        modal: friendsReward.artifact && {
+          data: friendsReward.artifact,
+          type: "artifact",
+        },
       };
     },
     // DONE
     async collectLevelReward(ctx) {
       // static data
-      const user = await getUser(ctx.state.user.id);
+      const user = await getUser(ctx.state.user.id, {
+        artifacts: true,
+      });
 
       const levelId = ctx.params.id;
 
@@ -334,6 +421,7 @@ module.exports = createCoreController(
         .query("api::levelreward.levelreward")
         .findOne({
           where: { id: levelId },
+          populate: { artifact: true },
         });
 
       let userRewards = user.rewards_tower || {};
@@ -367,146 +455,80 @@ module.exports = createCoreController(
 
       const data = await updateUser(user.id, upload);
 
-      // GAIN REWARDS SERVICE TRIGGER
-      const rewardType = levelReward.reward_type;
-      const quantity = levelReward.reward_amount;
+      // GAIN ARTIFACT IF THERE IS ONE
 
-      const updatedRewards = await strapi
-        .service("api::usercard.usercard")
-        .gainReward(user, rewardType, quantity);
+      let updatedRewards;
+
+      console.log(levelReward);
+
+      if (levelReward.reward_type === "artifact") {
+        updatedRewards = await strapi
+          .service("api::usercard.usercard")
+          .gainArtifact(user, levelReward.artifact.id);
+      }
+
+      // GAIN REWARDS SERVICE TRIGGER
+      if (!levelReward.reward_type === "artifact") {
+        const rewardType = levelReward.reward_type;
+        const quantity = levelReward.reward_amount;
+
+        updatedRewards = await strapi
+          .service("api::usercard.usercard")
+          .gainReward(user, rewardType, quantity);
+      }
 
       return {
         rewards_tower: data.rewards_tower,
         updatedRewards,
+        modal: levelReward.artifact && {
+          data: levelReward.artifact,
+          type: "artifact",
+        },
       };
     },
     // DONE
-    async claimObjectiveCounter(ctx) {
-      const objectiveCounterId = ctx.params.id;
-      const temporal_type = ctx.request.body.temporal_type; // PASS AS DATA??
+    async claimArtifact(ctx) {
+      const artifactId = ctx.params.id;
+      const user = await getUser(ctx.state.user.id, {
+        artifacts: true,
+        claimed_artifacts: true,
+      });
 
-      console.log(temporal_type);
+      const hasArtifact =
+        user.artifacts.filter((a) => parseInt(a.id) == parseInt(artifactId))
+          .length > 0;
 
-      const user = await getUser(ctx.state.user.id);
-
-      const user_objectives = user.objectives_json;
-      let user_objectives_counter = user.objectives_counter || {};
-
-      if (!objectiveCounterId || !temporal_type) {
-        ctx.throw(400, `Please provide objective id and type`);
-      }
-      if (objectiveCounterId < 1 || objectiveCounterId > 4) {
-        ctx.throw(400, `This objective reward does not exist.`);
-      }
-      if (temporal_type !== "daily" && temporal_type !== "weekly") {
-        ctx.throw(400, `This objective temporal_type does not exist.`);
+      if (!hasArtifact) {
+        ctx.throw(400, "You dont own this artifact.");
       }
 
-      const userCounter =
-        user_objectives_counter[temporal_type] &&
-        user_objectives_counter[temporal_type][objectiveCounterId];
+      const alreadyClaimed =
+        user.claimed_artifacts.filter(
+          (a) => parseInt(a.id) == parseInt(artifactId)
+        ).length > 0;
 
-      let completedObjectivesCount = 0;
-
-      const objectives = await strapi.db
-        .query("api::objective.objective")
-        .findMany({
-          where: {
-            time_type: temporal_type,
-          },
-        });
-
-      const objectivesIds = objectives.map((obj) => obj.id);
-      //user_objectives nema ids, treba da vlezam vo temporal type za da gi najdam
-      // check progress by the other objective json...
-
-      for (const id in user_objectives) {
-        if (objectivesIds.includes(parseInt(id))) {
-          completedObjectivesCount++;
-        }
+      if (alreadyClaimed) {
+        ctx.throw(400, "You have already claimed this artifact.");
       }
 
-      if (completedObjectivesCount < objectiveCounterId) {
-        ctx.throw(
-          400,
-          `You need to complete ${
-            objectiveCounterId - completedObjectivesCount
-          } more ${temporal_type} objectives to unlock this reward tier.`
-        );
-      }
-      // LOGIC
-      if (user_objectives_counter[temporal_type]) {
-        user_objectives_counter[temporal_type][objectiveCounterId] = true;
-      } else {
-        user_objectives_counter[temporal_type] = {
-          [objectiveCounterId]: true,
-        };
-      }
+      console.log(user.stats);
 
-      const payload = { objectives_counter: user_objectives_counter };
-      const data = await updateUser(user.id, payload);
-
-      // GAIN REWARDS SERVICE TRIGGER
-      //@calc
-      const objectiveCounterRewardsTable = {
-        daily: {
-          1: {
-            reward_type: "stars",
-            reward_quantity: 10,
-          },
-          2: {
-            reward_type: "stars",
-            reward_quantity: 15,
-          },
-          3: {
-            reward_type: "card_random",
-            reward_quantity: 5,
-          },
-          4: {
-            reward_type: "box_1",
-            reward_quantity: 1,
-          },
-        },
-        weekly: {
-          1: {
-            reward_type: "stars",
-            reward_quantity: 50,
-          },
-          2: {
-            reward_type: "stars",
-            reward_quantity: 75,
-          },
-          3: {
-            reward_type: "card_legendary",
-            reward_quantity: 5,
-          },
-          4: {
-            reward_type: "box_2",
-            reward_quantity: 1,
-          },
+      let upload = {
+        claimed_artifacts: [...user.claimed_artifacts, artifactId],
+        stats: {
+          ...user.stats,
+          claimed_artifacts: user.stats.claimed_artifacts + 1,
         },
       };
 
-      const rewardType =
-        objectiveCounterRewardsTable[temporal_type][objectiveCounterId]
-          .reward_type;
-      const quantity =
-        objectiveCounterRewardsTable[temporal_type][objectiveCounterId]
-          .reward_quantity;
+      console.log(upload);
 
-      const updatedRewards = await strapi
-        .service("api::usercard.usercard")
-        .gainReward(user, rewardType, quantity);
-
-      return {
-        objectives_counter: data.objectives_counter,
-        updatedRewards,
-      };
+      const data = updateUser(user.id, upload, { claimed_artifacts: true });
+      return data;
     },
-    // DONE
     async claimObjective(ctx) {
       const objectiveId = ctx.params.id;
-      const user = await getUser(ctx.state.user.id);
+      const user = await getUser(ctx.state.user.id, { artifacts: true });
       const user_objectives = user.objectives_json || {};
 
       const objective = await strapi.db
@@ -528,6 +550,10 @@ module.exports = createCoreController(
         ctx.throw(400, `This objective is not completed yet!`);
       }
 
+      if (objective.is_premium && !user.is_subscribed) {
+        ctx.throw(400, `This objective requires a premium subscription`);
+      }
+
       // SAVE PROGRESS
       const updated_user_objectives = {
         ...user_objectives,
@@ -540,266 +566,36 @@ module.exports = createCoreController(
       let payload = { objectives_json: updated_user_objectives };
       if (
         objective.requirement !== "login" &&
-        user.streak >= highest_streak_count
+        user.streak >= (user.highest_streak_count || 0)
       ) {
         payload = {
           objectives_json: updated_user_objectives,
-          highest_streak_count: user.highest_streak_count + 1,
+          highest_streak_count: (user.highest_streak_count || 0) + 1,
         };
       }
-      console.log(payload);
 
       const data = await updateUser(user.id, payload);
 
       // GAIN REWARDS SERVICE TRIGGER
-      const rewardType = objective.reward_type;
-      const quantity = objective.reward_amount;
-
-      const updatedRewards = await strapi
+      const objectiveRewards = await strapi
         .service("api::usercard.usercard")
-        .gainReward(user, rewardType, quantity);
+        .gainObjectiveRewards(user, objective);
+
+      // artifact trigger
+      const artifactData = await strapi
+        .service("api::usercard.usercard")
+        .achievementTrigger(
+          user,
+          objective.time_type === "daily"
+            ? "daily_objectives_complete"
+            : "weekly_objectives_complete"
+        );
 
       return {
         user_objectives: data.objectives_json,
-        updatedRewards,
+        rewards: objectiveRewards,
+        artifactTrigger: artifactData,
       };
-    },
-    // DONE
-    async openPack(ctx) {
-      const user = await getUser(ctx.state.user.id);
-      const boxId = parseInt(ctx.params.id);
-
-      const lootBox = await strapi.db.query("api::box.box").findOne({
-        where: { id: boxId },
-        populate: {
-          expansion: {
-            populate: {
-              cards: true,
-            },
-          },
-          image: true,
-        },
-      });
-
-      const boxCount = user.boxes[boxId];
-
-      if (!boxCount) {
-        return ctx.throw(400, "You have 0 loot boxes");
-      }
-
-      if (boxCount < 1) {
-        return ctx.throw(400, "You have 0 loot boxes");
-      }
-
-      const filterBy = (array, value, identifier = "id") => {
-        return array.filter((item) => item[identifier] === value)[0];
-      };
-
-      const hasExpansion = filterBy(
-        user.expansions,
-        lootBox.expansion.id,
-        "id"
-      );
-
-      // hardcore 2... pro expansion @newexp
-      if (!hasExpansion && lootBox.expansion.id === 2) {
-        return ctx.throw(400, "You do not have this expansion purchased yet.");
-      }
-
-      // ALL GOOD -> EXECUTE LOGIC
-      const upload = {
-        boxes: {
-          ...user.boxes,
-          [boxId]: user.boxes[boxId] - 1,
-        },
-      };
-
-      await updateUser(user.id, upload);
-
-      const cards = lootBox.expansion.cards;
-
-      const generateRandomCards = (cards, size) => {
-        const determineRarity = () => {
-          const drop_table = {
-            common: 69,
-            rare: 89,
-            epic: 99,
-            legendary: 100,
-          };
-          const randomNumber = Math.floor(Math.random() * 101);
-          for (const rarity in drop_table) {
-            if (randomNumber <= drop_table[rarity]) {
-              return rarity;
-            }
-          }
-        };
-
-        const generateRandomCard = (cards, fixedRarity = "") => {
-          const rarity = fixedRarity ? fixedRarity : determineRarity();
-          const filteredCards = cards.filter((c) => c.rarity === rarity);
-          const random = Math.floor(Math.random() * filteredCards.length);
-          return filteredCards[random];
-        };
-
-        const result = [];
-        for (let i = 0; i < size; i++) {
-          const droppedCard = generateRandomCard(cards);
-          result.push(droppedCard);
-        }
-        return result;
-      };
-
-      const getRandomQuantity = (min, max) => {
-        return Math.floor(Math.random() * (max - min + 1) + min);
-      };
-
-      // 3 can be variable set from lootbox example: lootbox.drop_amount
-      const cardsDropped = generateRandomCards(cards, 3);
-
-      async function updateUserRelations(cardsDropped) {
-        const results = [];
-        for (const card of cardsDropped) {
-          const updatedCard = await strapi
-            .service("api::usercard.usercard")
-            .gainCard(
-              user,
-              { card: card, quantity: getRandomQuantity(3, 6) }, // payload
-              "fromBox"
-            );
-          results.push(updatedCard);
-        }
-        return results;
-      }
-
-      const data = await updateUserRelations(cardsDropped);
-
-      const cardIds = data.map((c) => c.card);
-
-      const cardDetails = await strapi.db.query("api::card.card").findMany({
-        where: {
-          id: {
-            $in: cardIds,
-          },
-        },
-        populate: {
-          realm: {
-            populate: { image: true },
-          },
-          image: true,
-        },
-      });
-
-      const finalResult = data.map((c) => {
-        const oldCard = c;
-        const cardDetailsById = cardDetails.filter(
-          (card) => card.id === c.card
-        )[0];
-        oldCard.card = cardDetailsById;
-        return oldCard;
-      });
-
-      const finalData = {
-        box: lootBox,
-        results: finalResult,
-      };
-      // trigger achievement api
-      await strapi
-        .service("api::usercard.usercard")
-        .achievementTrigger(user, "open_pack");
-
-      return { data: finalData };
-    },
-    // DONE
-    async purchaseLootBox(ctx) {
-      const user = await getUser(ctx.state.user.id);
-      const boxId = ctx.params.id;
-
-      const lootBox = await strapi.db.query("api::box.box").findOne({
-        where: { id: boxId },
-        // populate: { expansions: true, cards: true },
-      });
-
-      let userStarsBalance = user.stars;
-      let userGemsBalance = user.gems;
-
-      if (lootBox.price_type === "stars") {
-        if (user.stars < lootBox.price) {
-          ctx.throw(400, `You do not have enough stars.`);
-          return;
-        }
-        userStarsBalance = userStarsBalance - lootBox.price;
-      }
-
-      if (lootBox.price_type === "gems") {
-        if (user.gems < lootBox.price) {
-          ctx.throw(400, `You do not have enough gems.`);
-          return;
-        }
-        userGemsBalance = userGemsBalance - lootBox.price;
-      }
-
-      await strapi
-        .service("api::usercard.usercard")
-        .gainReward(user, `box_${boxId}`);
-
-      const upload = {
-        stars: userStarsBalance,
-        gems: userGemsBalance,
-      };
-
-      const download = await updateUser(user.id, upload);
-
-      const data = {
-        stars: download.stars,
-        gems: download.gems,
-        box: lootBox,
-      };
-      return data;
-    },
-    // DONE
-    async purchaseExpansion(ctx) {
-      const user = await getUser(ctx.state.user.id);
-      const expansionId = parseInt(ctx.params.id);
-
-      const expansion = await strapi.db
-        .query("api::expansion.expansion")
-        .findOne({
-          where: { id: expansionId },
-        });
-
-      if (expansion.id === 1) {
-        ctx.throw(400, `This is a Basic Expansion, you already have it!`);
-        return;
-      }
-
-      if (!expansion) {
-        ctx.throw(400, `This expansion does not exist.`);
-        return;
-      }
-
-      if (user.expansions.filter((e) => e.id === expansionId).length > 0) {
-        ctx.throw(400, `You already have this expansion.`);
-        return;
-      }
-
-      if (user.gems < expansion.price) {
-        ctx.throw(400, `You do not have enough gems.`);
-        return;
-      }
-
-      const upload = {
-        gems: user.gems - expansion.price,
-        expansions: [...user.expansions, expansionId],
-      };
-
-      const download = await updateUser(user.id, upload);
-
-      const data = {
-        gems: download.gems,
-        expansion: expansion,
-      };
-
-      return data;
     },
     // DONE
     async purchaseProduct(ctx) {
@@ -863,7 +659,33 @@ module.exports = createCoreController(
 
       // IF PAYMENT IS SUCCESSFUL -> EXECUTE LOGIC
 
-      // IF PRODUCT === GEMS
+      // IF PRODUCT === SUBSCRIPTION
+      if (product.type === "subscription") {
+        if (user.is_subscribed) {
+          return ctx.badRequest("You are already subscribed.");
+        }
+
+        const upload = {
+          is_subscribed: true,
+          subscription_date: Date.now(),
+        };
+
+        const updatedUser = updateUser(user.id, upload);
+
+        const newOrder = await strapi
+          .service("api::usercard.usercard")
+          .createOrder(user, product, API);
+
+        const data = {
+          newOrder,
+          is_subscribed: updatedUser.is_subscribed,
+        };
+
+        // SUBSCRIPTION_PURCHASE_SUCCESS
+        return data;
+      }
+
+      // IF PRODUCT === STARS
       if (product.type === "gems") {
         const newOrder = await strapi
           .service("api::usercard.usercard")
@@ -906,32 +728,6 @@ module.exports = createCoreController(
 
         // BUNDLE_PURCHASE_SUCCESS
         return newOrder;
-      }
-
-      // IF PRODUCT === SUBSCRIPTION
-      if (product.type === "subscription") {
-        if (user.is_subscribed) {
-          return ctx.badRequest("You are already subscribed.");
-        }
-
-        const upload = {
-          is_subscribed: true,
-          subscription_date: Date.now(),
-        };
-
-        const updatedUser = updateUser(user.id, upload);
-
-        const newOrder = await strapi
-          .service("api::usercard.usercard")
-          .createOrder(user, product, API);
-
-        const data = {
-          newOrder,
-          is_subscribed: updatedUser.is_subscribed,
-        };
-
-        // SUBSCRIPTION_PURCHASE_SUCCESS
-        return data;
       }
     },
     // DONE

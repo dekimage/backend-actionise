@@ -4,7 +4,8 @@
   "info": {
     "singularName": "streakreward",
     "pluralName": "streakrewards",
-    "displayName": "streakreward"
+    "displayName": "streakreward",
+    "description": ""
   },
   "options": {
     "draftAndPublish": false
@@ -24,10 +25,19 @@
       "target": "api::card.card",
       "mappedBy": "streakreward"
     },
-    "reward_box": {
+    "artifact": {
       "type": "relation",
       "relation": "oneToOne",
-      "target": "api::box.box"
+      "target": "api::artifact.artifact",
+      "mappedBy": "streakreward"
+    },
+    "reward_type": {
+      "type": "enumeration",
+      "enum": [
+        "stars",
+        "artifact",
+        "card"
+      ]
     }
   }
 }

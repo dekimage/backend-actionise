@@ -55,7 +55,7 @@
       "type": "relation",
       "relation": "manyToMany",
       "target": "api::problem.problem",
-      "inversedBy": "books"
+      "mappedBy": "books"
     },
     "affiliate_link": {
       "type": "string"
