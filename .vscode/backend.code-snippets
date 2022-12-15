@@ -1,0 +1,26 @@
+{
+  "Test": {
+    "prefix": ["comp"],
+    "body": [
+      "const ${1:Component} = ({${2:props}}) => { return ( <div className={styles.${3:classname}}>$0</div>) }"
+    ],
+    "description": "Functional Component"
+  },
+  "StrapiFindMany": {
+    "prefix": ["findMany"],
+    "body": [
+      "const ${1:entity} = await strapi.db.query(\"api::entity.entity\").findMany();"
+    ],
+    "description": "FindMany"
+  },
+  "StrapiFindOne": {
+    "prefix": ["findOne"],
+    "body": [
+      "const entity = await strapi.db.query(\"api::entity.entity\").findOne({",
+      "where: { id: entity.id },",
+      "populate: { relation: true }",
+      "});"
+    ],
+    "description": "FindOne"
+  }
+}

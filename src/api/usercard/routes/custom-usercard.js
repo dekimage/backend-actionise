@@ -22,6 +22,11 @@ module.exports = {
     },
     {
       method: "PUT",
+      path: "/usercard/save-avatar/:id",
+      handler: "usercard.saveAvatar",
+    },
+    {
+      method: "PUT",
       path: "/usercard/collect-level-reward/:id",
       handler: "usercard.collectLevelReward",
     },

@@ -44,7 +44,7 @@ const getUser = async (id, populate = {}) => {
 };
 
 const updateUser = async (id, payload, populate = {}) => {
-  const defaultPopulate = { usercards: true,  orders: true };
+  const defaultPopulate = { usercards: true, orders: true };
   const user = await strapi.db.query("plugin::users-permissions.user").update({
     where: { id: id },
     data: payload,
@@ -131,6 +131,11 @@ module.exports = createCoreController(
             image: true,
           },
         },
+        avatar: {
+          populate: {
+            image: true,
+          },
+        },
         claimed_artifacts: {
           populate: true,
         },
@@ -163,7 +168,7 @@ module.exports = createCoreController(
             },
           },
         },
-        
+
         orders: true,
         communityactions: {
           populate: {
@@ -554,6 +559,14 @@ module.exports = createCoreController(
         ctx.throw(400, `This objective requires a premium subscription`);
       }
 
+      // objectives trigger for daily/weekly
+      await strapi
+        .service("api::usercard.usercard")
+        .objectivesTrigger(
+          user,
+          objective.time_type === "daily" ? "daily" : "weekly"
+        );
+
       // SAVE PROGRESS
       const updated_user_objectives = {
         ...user_objectives,
@@ -780,6 +793,27 @@ module.exports = createCoreController(
       const upload = { is_subscription_cancelled: true };
       const data = await updateUser(user.id, upload);
       return data.is_unsubscribed;
+    },
+    async saveAvatar(ctx) {
+      const user = await getUser(ctx.state.user.id);
+      const avatarId = parseInt(ctx.params.id);
+
+      const avatar = await strapi.db.query("api::avatar.avatar").findOne({
+        where: {
+          id: avatarId,
+        },
+      });
+
+      if (!avatar) {
+        ctx.throw(400, "Avatar Image does not exist.");
+      }
+
+      // check if he can equip avatar ->
+      const upload = {
+        avatar: avatar.id,
+      };
+      const data = updateUser(user.id, upload);
+      return data;
     },
   })
 );

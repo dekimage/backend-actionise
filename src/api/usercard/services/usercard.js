@@ -390,13 +390,47 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
         const payload = { last_completed_cards: new_last_completed };
         await updateUser(user.id, payload);
         //---
+        if (!user.is_subscribed) {
+          await strapi
+            .service("api::usercard.usercard")
+            .gainReward(user, "energy", -1);
+        }
 
-        await strapi
-          .service("api::usercard.usercard")
-          .gainReward(user, "energy", -1);
+        // add update League feature
+
+        const updatedCompleted = userCardRelation.completed + 1;
+
+        const leagues = [
+          { min: 0, max: 3, league: "unranked" },
+          { min: 4, max: 6, league: "bronze" },
+          { min: 7, max: 14, league: "silver" },
+          { min: 15, max: 24, league: "gold" },
+          { min: 25, max: 49, league: "platinum" },
+          { min: 50, max: 99, league: "diamond" },
+          { min: 100, max: 10000000, league: "grandmaster" },
+        ];
+
+        const findLeague = (completed) => {
+          const league = leagues.filter(
+            (l) => completed >= l.min && completed <= l.max
+          )[0];
+          return {
+            league: league.league,
+            max: league.max,
+          };
+        };
+
+        const updatedLeague = findLeague(updatedCompleted).league;
+        const updatedProgressMax = findLeague(updatedCompleted).max + 1;
+
+        if (updatedLeague !== userCardRelation.league) {
+          // trigger achievement for the league type
+        }
 
         const update = {
-          completed: userCardRelation.completed + 1,
+          league: updatedLeague,
+          completed_progress_max: updatedProgressMax,
+          completed: updatedCompleted,
           completed_at: Date.now(),
         };
 

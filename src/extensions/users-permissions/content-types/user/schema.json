@@ -245,6 +245,11 @@
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::artifact.artifact"
+    },
+    "avatar": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::avatar.avatar"
     }
   }
 }

@@ -90,6 +90,21 @@
       "relation": "oneToMany",
       "target": "api::communityaction.communityaction",
       "mappedBy": "voted_by"
+    },
+    "league": {
+      "type": "enumeration",
+      "enum": [
+        "unranked",
+        "bronze",
+        "silver",
+        "gold",
+        "platinum",
+        "diamond",
+        "grandmaster"
+      ]
+    },
+    "completed_progress_max": {
+      "type": "integer"
     }
   }
 }

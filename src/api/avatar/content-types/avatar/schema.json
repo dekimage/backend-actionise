@@ -1,0 +1,37 @@
+{
+  "kind": "collectionType",
+  "collectionName": "avatars",
+  "info": {
+    "singularName": "avatar",
+    "pluralName": "avatars",
+    "displayName": "avatar"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "image": {
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ],
+      "type": "media",
+      "multiple": false
+    },
+    "is_open": {
+      "type": "boolean"
+    },
+    "require_level": {
+      "type": "integer"
+    },
+    "require_artifact": {
+      "type": "integer"
+    }
+  }
+}
