@@ -39,7 +39,7 @@
       "default": 0
     },
     "completed_at": {
-      "type": "integer"
+      "type": "biginteger"
     },
     "is_favorite": {
       "type": "boolean",
