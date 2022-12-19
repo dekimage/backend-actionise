@@ -164,9 +164,6 @@
       "target": "plugin::users-permissions.user",
       "inversedBy": "followers"
     },
-    "boxes": {
-      "type": "json"
-    },
     "rewards_tower": {
       "type": "json"
     },
@@ -250,6 +247,10 @@
       "type": "relation",
       "relation": "oneToOne",
       "target": "api::avatar.avatar"
+    },
+    "is_referral_accepted": {
+      "type": "boolean",
+      "default": false
     }
   }
 }

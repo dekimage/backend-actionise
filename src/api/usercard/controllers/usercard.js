@@ -76,6 +76,30 @@ module.exports = createCoreController(
       const data = updateUser(user.id, payload);
       return data;
     },
+    async acceptReferral(ctx) {
+      const user = await getUser(ctx.state.user.id, { shared_by: true });
+      // update self
+      const upload = {
+        is_referral_accepted: true,
+        stars: user.stars + 400,
+      };
+
+      await updateUser(user.id, upload);
+
+      const sharedUserId = user.shared_by.id;
+      console.log(sharedUserId);
+
+      const sharedUser = await getUser(sharedUserId, { shared_buddies: true });
+
+      // update the shared user
+      const sharedUpload = {
+        highest_buddy_shares: sharedUser.highest_buddy_shares + 1,
+        // shared_buddies: [...sharedUser.shared_buddies, sharedUserId],
+      };
+
+      await updateUser(sharedUserId, sharedUpload);
+      return { success: true };
+    },
     //DONE
     async me(ctx) {
       const user = ctx.state.user;

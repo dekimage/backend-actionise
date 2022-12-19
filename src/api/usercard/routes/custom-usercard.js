@@ -27,6 +27,11 @@ module.exports = {
     },
     {
       method: "PUT",
+      path: "/usercard/accept-referral",
+      handler: "usercard.acceptReferral",
+    },
+    {
+      method: "PUT",
       path: "/usercard/collect-level-reward/:id",
       handler: "usercard.collectLevelReward",
     },

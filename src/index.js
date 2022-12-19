@@ -30,12 +30,6 @@ module.exports = {
             data: {
               highest_buddy_shares: 0,
               highest_streak_count: 0,
-              boxes: {
-                1: 1,
-                2: 0,
-                3: 0,
-                4: 0,
-              },
               objectives_json: {
                 1: {
                   progress: 0,
@@ -93,20 +87,30 @@ module.exports = {
               streak_rewards: {
                 1: false,
               },
+              stats: {
+                card_unlock: 0,
+                raid_complete: 0,
+                cards_complete: 0,
+                action_complete: 0,
+                dungeon_complete: 0,
+                claimed_artifacts: 0,
+                daily_objectives_complete: 0,
+                weekly_objectives_complete: 0,
+              },
             },
           });
-        await strapi.db.query("api::usercard.usercard").create({
-          data: {
-            user: user.id,
-            card: 1,
-            quantity: 1,
-            completed: 0,
-            glory_points: 0,
-            is_unlocked: true,
-            is_new: false,
-            user_name: user.username,
-          },
-        });
+        // await strapi.db.query("api::usercard.usercard").create({
+        //   data: {
+        //     user: user.id,
+        //     card: 2,
+        //     quantity: 1,
+        //     completed: 0,
+        //     glory_points: 0,
+        //     is_unlocked: true,
+        //     is_new: false,
+        //     user_name: user.username,
+        //   },
+        // });
         return user;
       },
     });

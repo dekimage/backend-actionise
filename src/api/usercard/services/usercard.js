@@ -23,6 +23,7 @@ const starAmountByRarity = {
   epic: 100,
   legendary: 200,
 };
+
 function getRandomStars() {
   const rarity = determineRarity();
   const stars = starAmountByRarity[rarity];
@@ -498,15 +499,10 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     }
   },
   achievementTrigger: async (user, requirement) => {
-    console.log(user.stats);
-    console.log(requirement);
-
     let user_stats = user.stats || {
       claimed_artifacts: 0,
       cards_complete: 0,
       action_complete: 0,
-      dungeon_complete: 0,
-      raid_complete: 0,
       card_unlock: 0,
       daily_objectives_complete: 0,
       weekly_objectives_complete: 0,
@@ -514,24 +510,21 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
 
     const artifactTable = {
       cards_complete: [1, 2],
-      action_complete: [1, 2, 4],
+      action_complete: [1, 2],
       card_unlock: [1, 2],
       daily_objectives_complete: [1, 2],
       weekly_objectives_complete: [1, 2],
-      // dungeon_complete: [1, 2, 5, 10, 15, 20],
-      // raid_complete: [1, 2, 5, 10, 15, 20],
     };
+
     if (!artifactTable[requirement]) {
       console.log("wrong type name??");
       return false;
     }
+
     const statUpdated = user_stats[requirement] + 1;
     const shouldGainArtifact =
       artifactTable[requirement].filter((req) => req === statUpdated).length >
       0;
-    console.log("shouldGainArtifact", shouldGainArtifact);
-    console.log("requirement", requirement);
-    console.log("require", statUpdated);
 
     let artifact = false;
     if (shouldGainArtifact) {
@@ -539,7 +532,6 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
         where: { type: requirement, require: statUpdated },
       });
 
-      console.log(artifact);
       const artifactData = await strapi
         .service("api::usercard.usercard")
         .gainArtifact(user, artifact.id);
