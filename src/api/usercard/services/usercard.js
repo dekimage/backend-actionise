@@ -402,11 +402,11 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
         const updatedCompleted = userCardRelation.completed + 1;
 
         const leagues = [
-          { min: 0, max: 3, league: "unranked" },
-          { min: 4, max: 6, league: "bronze" },
-          { min: 7, max: 14, league: "silver" },
-          { min: 15, max: 24, league: "gold" },
-          { min: 25, max: 49, league: "platinum" },
+          { min: 0, max: 2, league: "unranked" },
+          { min: 3, max: 5, league: "bronze" },
+          { min: 6, max: 9, league: "silver" },
+          { min: 10, max: 19, league: "gold" },
+          { min: 20, max: 49, league: "platinum" },
           { min: 50, max: 99, league: "diamond" },
           { min: 100, max: 10000000, league: "grandmaster" },
         ];
@@ -549,9 +549,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     const data = await updateUser(user.id, upload);
     return {
       data: data.stats,
-      artifactData: shouldGainArtifact && {
-        modal: { data: artifact, type: "artifact" },
-      },
+      rewards: shouldGainArtifact && { artifact: artifact },
     };
   },
   objectivesTrigger: async (user, requirement) => {

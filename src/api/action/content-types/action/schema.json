@@ -78,6 +78,9 @@
     },
     "examples": {
       "type": "richtext"
+    },
+    "description": {
+      "type": "text"
     }
   }
 }

@@ -28,6 +28,7 @@ module.exports = {
           .update({
             where: { id: result.id },
             data: {
+              reset_week_date: new Date().getTime() + 7 * 24 * 60 * 60 * 1000,
               highest_buddy_shares: 0,
               highest_streak_count: 0,
               objectives_json: {
@@ -62,20 +63,6 @@ module.exports = {
                 8: {
                   progress: 0,
                   isCollected: false,
-                },
-              },
-              objectives_counter: {
-                daily: {
-                  1: false,
-                  2: false,
-                  3: false,
-                  4: false,
-                },
-                weekly: {
-                  1: false,
-                  2: false,
-                  3: false,
-                  4: false,
                 },
               },
               rewards_tower: {

@@ -170,9 +170,6 @@
     "objectives_json": {
       "type": "json"
     },
-    "objectives_counter": {
-      "type": "json"
-    },
     "streak_rewards": {
       "type": "json"
     },
@@ -251,6 +248,9 @@
     "is_referral_accepted": {
       "type": "boolean",
       "default": false
+    },
+    "reset_week_date": {
+      "type": "biginteger"
     }
   }
 }

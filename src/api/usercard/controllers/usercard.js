@@ -118,25 +118,35 @@ module.exports = createCoreController(
       const today = new Date();
       const isRestarted = formatDate(today) === user.reset_date;
 
+      //week implement
+      const weekResetDate =
+        user.reset_week_date || today.getTime() + 7 * 24 * 60 * 60 * 1000;
+      const isWeekRestarted = today.getTime() >= weekResetDate;
+
       if (!isRestarted) {
         const resetUser = await updateUser(user.id, {
-          energy: 3,
+          energy: user.energy <= 3 ? 3 : user.energy,
           reset_date: formatDate(today),
-          objectives_counter: {
-            ...user.objectives_counter,
-            daily: {
-              1: false,
-              2: false,
-              3: false,
-              4: false,
-            },
-          },
+          reset_week_date: isWeekRestarted
+            ? today.getTime() + 7 * 24 * 60 * 60 * 1000
+            : !user.reset_week_date
+            ? today.getTime() + 7 * 24 * 60 * 60 * 1000
+            : user.reset_week_date,
           objectives_json: {
             ...user.objectives_json,
-            1: { progress: 1, isCollected: false },
-            3: { progress: 0, isCollected: false },
-            4: { progress: 0, isCollected: false },
-            5: { progress: 0, isCollected: false },
+            8: { progress: 1, isCollected: false },
+            9: { progress: 0, isCollected: false },
+            10: { progress: 0, isCollected: false },
+            11: { progress: 0, isCollected: false },
+            12: isWeekRestarted
+              ? { progress: 0, isCollected: false }
+              : user.objectives_json[12],
+            13: isWeekRestarted
+              ? { progress: 0, isCollected: false }
+              : user.objectives_json[13],
+            14: isWeekRestarted
+              ? { progress: 0, isCollected: false }
+              : user.objectives_json[14],
           },
         });
       }

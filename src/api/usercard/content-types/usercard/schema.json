@@ -104,7 +104,8 @@
       ]
     },
     "completed_progress_max": {
-      "type": "integer"
+      "type": "integer",
+      "default": 4
     }
   }
 }
