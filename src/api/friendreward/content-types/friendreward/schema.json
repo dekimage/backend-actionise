@@ -28,6 +28,13 @@
       "relation": "oneToOne",
       "target": "api::artifact.artifact",
       "mappedBy": "friendreward"
+    },
+    "reward_type": {
+      "type": "enumeration",
+      "enum": [
+        "card",
+        "artifact"
+      ]
     }
   }
 }
