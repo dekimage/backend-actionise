@@ -308,8 +308,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
 
       const alreadyFavorite =
         newFavoriteActions.length > 0 &&
-        newFavoriteActions.filter((a) => parseInt(a.id) == parseInt(card_id))
-          .length > 0;
+        newFavoriteActions.filter((a) => a.id == card_id).length > 0;
 
       if (alreadyFavorite) {
         newFavoriteActions = newFavoriteActions.filter((a) => a.id != card_id);
@@ -481,15 +480,14 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
 
       const alreadyFavorite =
         newFavoriteCards.length > 0 &&
-        newFavoriteCards.filter((a) => parseInt(a.id) == parseInt(card_id))
-          .length > 0;
+        newFavoriteCards.filter((a) => a.id == card_id).length > 0;
 
       if (alreadyFavorite) {
         newFavoriteCards = newFavoriteCards.filter((a) => a.id != card_id);
       } else {
         newFavoriteCards.push(card_id);
       }
-
+      console.log(newFavoriteCards);
       const userUpdate = {
         favorite_cards: newFavoriteCards,
       };

@@ -79,6 +79,9 @@ module.exports = createCoreController(
     async acceptReferral(ctx) {
       const user = await getUser(ctx.state.user.id, { shared_by: true });
       // update self
+      if (user.is_referral_accepted) {
+        ctx.throw(400, "You already claimed this reward");
+      }
       const upload = {
         is_referral_accepted: true,
         stars: user.stars + 400,
@@ -159,6 +162,9 @@ module.exports = createCoreController(
         favorite_actions: {
           populate: true,
         },
+        favorite_cards: {
+          populate: true,
+        },
         artifacts: {
           populate: true,
           populate: {
@@ -235,10 +241,11 @@ module.exports = createCoreController(
         last_unlocked_cards: true,
         actions: true,
         favorite_actions: true,
+        favorite_cards: true,
         artifacts: true,
       });
 
-      const card_id = ctx.params.id;
+      const card_id = parseInt(ctx.params.id);
       const action = ctx.request.body.action;
       if (
         action !== "complete" &&
