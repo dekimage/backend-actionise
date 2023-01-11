@@ -14,9 +14,15 @@ module.exports = ({ env }) => {
           },
         },
       },
+      "google-auth": {
+        enabled: true,
+      },
     };
   }
   return {
+    "strapi-google-auth": {
+      enabled: true,
+    },
     //By empty object we specify system default - strapi local upload
   };
 };
