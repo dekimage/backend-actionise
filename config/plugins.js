@@ -14,7 +14,7 @@ module.exports = ({ env }) => {
           },
         },
       },
-      "google-auth": {
+      "strapi-google-auth": {
         enabled: true,
       },
     };
