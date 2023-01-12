@@ -219,7 +219,11 @@ module.exports = createCoreController(
         shared_by: true,
         shared_buddies: {
           populate: {
-            image: true,
+            avatar: {
+              populate: {
+                image: true,
+              },
+            },
           },
         },
         last_unlocked_cards: true,
