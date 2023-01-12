@@ -118,8 +118,19 @@ module.exports = createCoreController(
         .count();
       const cards_count = await strapi.db.query("api::card.card").count();
 
+      const levelRewards = await strapi.db
+        .query("api::levelreward.levelreward")
+        .findMany({
+          where: {
+            level: {
+              $lt: user.level + 1,
+            },
+          },
+        });
+
       const today = new Date();
       const isRestarted = formatDate(today) === user.reset_date;
+      console.log({ isRestarted, userresetdate: user.reset_date });
 
       //week implement
       const weekResetDate =
@@ -165,11 +176,11 @@ module.exports = createCoreController(
         favorite_cards: {
           populate: true,
         },
+        levelrewards: {
+          populate: true,
+        },
         artifacts: {
           populate: true,
-          populate: {
-            image: true,
-          },
         },
         avatar: {
           populate: {
@@ -192,30 +203,9 @@ module.exports = createCoreController(
             },
           },
         },
-        usercourses: {
-          populate: {
-            course: {
-              populate: {
-                image: true,
-                realm: true,
-                course_details: true,
-                days: {
-                  populate: {
-                    contents: true,
-                  },
-                },
-              },
-            },
-          },
-        },
 
         orders: true,
-        communityactions: {
-          populate: {
-            card: true,
-            steps: true,
-          },
-        },
+
         shared_by: true,
         shared_buddies: {
           populate: {
@@ -235,7 +225,12 @@ module.exports = createCoreController(
         },
         followedBy: true,
       });
-      const userDataModified = { ...data, artifacts_count, cards_count };
+      const userDataModified = {
+        ...data,
+        artifacts_count,
+        cards_count,
+        levelRewards,
+      };
       return userDataModified;
     },
     // DONE
@@ -463,6 +458,7 @@ module.exports = createCoreController(
       // static data
       const user = await getUser(ctx.state.user.id, {
         artifacts: true,
+        levelrewards: true,
       });
 
       const levelId = ctx.params.id;
@@ -501,6 +497,7 @@ module.exports = createCoreController(
 
       const upload = {
         rewards_tower: userRewards,
+        levelrewards: [...user.levelrewards, levelReward.id],
       };
 
       const data = await updateUser(user.id, upload);
