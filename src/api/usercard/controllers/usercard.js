@@ -123,14 +123,14 @@ module.exports = createCoreController(
         .findMany({
           where: {
             level: {
-              $lt: user.level + 1,
+              $lt: user.level + 2,
             },
           },
         });
 
       const today = new Date();
       const isRestarted = formatDate(today) === user.reset_date;
-      console.log({ isRestarted, userresetdate: user.reset_date });
+      // console.log({ isRestarted, userresetdate: user.reset_date });
 
       //week implement
       const weekResetDate =
