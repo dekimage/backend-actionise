@@ -619,7 +619,7 @@ module.exports = createCoreController(
 
       let payload = { objectives_json: updated_user_objectives };
       if (
-        objective.requirement !== "login" &&
+        objective.requirement == "login" &&
         user.streak >= (user.highest_streak_count || 0)
       ) {
         payload = {

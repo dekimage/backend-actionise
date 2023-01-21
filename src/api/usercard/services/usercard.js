@@ -73,6 +73,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     let payload = {};
     let artifactData = false;
     let starsGained; // for return to frontend only
+
     //1. XP (daily + 50, weekly + 250)
     const xpPerObjective = { daily: 50, weekly: 250 };
     const xpGained = xpPerObjective[objective.time_type];
@@ -86,6 +87,14 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     } else {
       payload = {
         xp: user.xp + xpGained,
+      };
+    }
+
+    //1.5 Streak (objective reward = streak)
+    if (objective.reward_type === "streak") {
+      payload = {
+        ...payload,
+        streak: user.streak + 1,
       };
     }
 
@@ -125,6 +134,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     const data = await updateUser(user.id, payload);
 
     //MODALS CAN BE ARRAY -> CONSTRUCTED WAY
+
     return {
       xp: xpGained,
       level: payload.level,
@@ -163,8 +173,8 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
           },
         });
 
-      console.log(artifactsByRarity);
-      console.log(determineRarity());
+      // console.log(artifactsByRarity);
+      // console.log(determineRarity());
 
       const userArtifactsById = user.artifacts.map((a) => a.id);
 
@@ -187,24 +197,21 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
       artifactId = rewardArtifact.id;
     }
 
-    console.log("artifact id", artifactId);
+    // console.log("artifact id", artifactId);
 
     // GENERIC GAIN ARTIFACT
     const hasArtifact =
       user.artifacts.filter((a) => a.id === artifactId).length > 0;
 
     if (hasArtifact) {
-      console.log("return false??");
       return false;
       // return ctx.badRequest("You already have that artifact");
     }
-    console.log("user artifacts, ", user.artifacts);
-    console.log("artifactId, ", artifactId);
-    const upload = { artifacts: [...user.artifacts, artifactId] };
+    // console.log("user artifacts, ", user.artifacts);
+    // console.log("artifactId, ", artifactId);
+    // const upload = { artifacts: [...user.artifacts, artifactId] };
 
     const data = await updateUser(user.id, upload, { artifacts: true });
-
-    console.log(rewardArtifact);
 
     return {
       // modal: { data: rewardArtifact, type: "artifact" },
