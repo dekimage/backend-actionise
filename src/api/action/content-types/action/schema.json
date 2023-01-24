@@ -81,6 +81,9 @@
     },
     "description": {
       "type": "text"
+    },
+    "benefits": {
+      "type": "richtext"
     }
   }
 }
