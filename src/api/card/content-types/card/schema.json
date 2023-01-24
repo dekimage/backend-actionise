@@ -103,9 +103,6 @@
     },
     "benefits": {
       "type": "richtext"
-    },
-    "quotes": {
-      "type": "richtext"
     }
   }
 }
