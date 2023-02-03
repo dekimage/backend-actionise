@@ -1,5 +1,17 @@
 "use strict";
 
+const createNewUserObjectives = async () => {
+  //arr = objectives real
+  const arr = await strapi.db.query("api::objective.objective").findMany();
+
+  var obj = {};
+  for (var i = 0; i < arr.length; i++) {
+    const calcProgress = arr[i].requirement == "login" ? 1 : 0;
+    obj[arr[i].id] = { progress: calcProgress, isCollected: false };
+  }
+  return obj;
+};
+
 module.exports = {
   /**
    * An asynchronous register function that runs before
@@ -31,40 +43,7 @@ module.exports = {
               reset_week_date: new Date().getTime() + 7 * 24 * 60 * 60 * 1000,
               highest_buddy_shares: 0,
               highest_streak_count: 0,
-              objectives_json: {
-                1: {
-                  progress: 0,
-                  isCollected: false,
-                },
-                2: {
-                  progress: 0,
-                  isCollected: false,
-                },
-                3: {
-                  progress: 0,
-                  isCollected: false,
-                },
-                4: {
-                  progress: 0,
-                  isCollected: false,
-                },
-                5: {
-                  progress: 0,
-                  isCollected: false,
-                },
-                6: {
-                  progress: 0,
-                  isCollected: false,
-                },
-                7: {
-                  progress: 0,
-                  isCollected: false,
-                },
-                8: {
-                  progress: 0,
-                  isCollected: false,
-                },
-              },
+              objectives_json: await createNewUserObjectives(),
               rewards_tower: {
                 1: false,
               },
@@ -76,10 +55,8 @@ module.exports = {
               },
               stats: {
                 card_unlock: 0,
-                raid_complete: 0,
                 cards_complete: 0,
                 action_complete: 0,
-                dungeon_complete: 0,
                 claimed_artifacts: 0,
                 daily_objectives_complete: 0,
                 weekly_objectives_complete: 0,

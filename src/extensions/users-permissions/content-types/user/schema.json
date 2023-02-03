@@ -251,6 +251,16 @@
     },
     "reset_week_date": {
       "type": "biginteger"
+    },
+    "card_tickets": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::card.card"
+    },
+    "action_tickets": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::action.action"
     }
   }
 }

@@ -2,6 +2,39 @@
 
 const { createCoreService } = require("@strapi/strapi").factories;
 
+const resetUserObjectives = async (user_json, isWeekRestarted) => {
+  //arr = objectives real
+  const arr = await strapi.db.query("api::objective.objective").findMany();
+
+  var obj = {};
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i].time_type == "daily") {
+      const calcProgress = arr[i].requirement == "login" ? 1 : 0;
+      obj[arr[i].id] = { progress: calcProgress, isCollected: false };
+    }
+    if (arr[i].time_type == "weekly") {
+      if (isWeekRestarted) {
+        obj[arr[i].id] = { progress: 0, isCollected: false };
+      } else {
+        obj[arr[i].id] = user_json[arr[i].id];
+      }
+    }
+  }
+  return obj;
+};
+
+const calculateWeekReset = (user, today) => {
+  const weekResetDate =
+    user.reset_week_date || today.getTime() + 7 * 24 * 60 * 60 * 1000;
+  const isWeekRestarted = today.getTime() >= weekResetDate;
+  const resetWeekDate = isWeekRestarted
+    ? today.getTime() + 7 * 24 * 60 * 60 * 1000
+    : !user.reset_week_date
+    ? today.getTime() + 7 * 24 * 60 * 60 * 1000
+    : user.reset_week_date;
+  return { resetWeekDate, isWeekRestarted };
+};
+
 const determineRarity = () => {
   const drop_table = {
     common: 60,
@@ -69,6 +102,21 @@ const getUserCard = async (userId, cardId) => {
 
 module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
   //DONE
+  resetUser: async (user, today, formatDate) => {
+    const { resetWeekDate, isWeekRestarted } = calculateWeekReset(user, today);
+
+    await updateUser(user.id, {
+      energy: user.energy <= 3 ? 3 : user.energy,
+      card_tickets: [],
+      action_tickets: [],
+      reset_date: formatDate(today),
+      reset_week_date: resetWeekDate,
+      objectives_json: await resetUserObjectives(
+        user.objectives_json,
+        isWeekRestarted
+      ),
+    });
+  },
   gainObjectiveRewards: async (user, objective) => {
     let payload = {};
     let artifactData = false;
@@ -209,7 +257,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     }
     // console.log("user artifacts, ", user.artifacts);
     // console.log("artifactId, ", artifactId);
-    // const upload = { artifacts: [...user.artifacts, artifactId] };
+    const upload = { artifacts: [...user.artifacts, artifactId] };
 
     const data = await updateUser(user.id, upload, { artifacts: true });
 
@@ -512,7 +560,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
       daily_objectives_complete: 0,
       weekly_objectives_complete: 0,
     };
-
+    // @MATH
     const artifactTable = {
       cards_complete: [1, 2],
       action_complete: [1, 2],

@@ -103,6 +103,10 @@
     },
     "benefits": {
       "type": "richtext"
+    },
+    "last_day": {
+      "type": "integer",
+      "default": 0
     }
   }
 }

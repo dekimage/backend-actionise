@@ -6,6 +6,19 @@
     ],
     "description": "Functional Component"
   },
+  "SnippetTemplate": {
+    "prefix": ["snippet"],
+    "body": [
+      " \"StrapiFindMany\": {",
+      "\"prefix\": [\"findMany\"],",
+      "\"body\": [",
+      "\"const ${1:entity} = await strapi.db.query(\"api::entity.entity\").findMany();\"",
+      "],",
+      "\"description\": \"FindMany\"",
+      "},"
+    ],
+    "description": "Create Snippet"
+  },
   "StrapiFindMany": {
     "prefix": ["findMany"],
     "body": [
@@ -22,5 +35,13 @@
       "});"
     ],
     "description": "FindOne"
+  },
+  "CallService": {
+    "prefix": ["callService"],
+    "body": [
+      "const service = await strapi",
+      ".service(\"api::usercard.usercard\")",
+      ".serviceName(ctx, user);"
+    ]
   }
 }

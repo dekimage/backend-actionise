@@ -12,6 +12,7 @@ const sanitizeUser = (user) => {
   delete user["createdAt"];
   return user;
 };
+
 const formatDate = (date) => {
   const padTo2Digits = (num) => {
     return num.toString().padStart(2, "0");
@@ -116,8 +117,8 @@ module.exports = createCoreController(
       const artifacts_count = await strapi.db
         .query("api::artifact.artifact")
         .count();
-      const cards_count = await strapi.db.query("api::card.card").count();
 
+      const cards_count = await strapi.db.query("api::card.card").count();
       const levelRewards = await strapi.db
         .query("api::levelreward.levelreward")
         .findMany({
@@ -128,46 +129,26 @@ module.exports = createCoreController(
           },
         });
 
+      // Reset User
       const today = new Date();
       const isRestarted = formatDate(today) === user.reset_date;
-
-      //week implement
-      const weekResetDate =
-        user.reset_week_date || today.getTime() + 7 * 24 * 60 * 60 * 1000;
-      const isWeekRestarted = today.getTime() >= weekResetDate;
-
       if (!isRestarted) {
-        const resetUser = await updateUser(user.id, {
-          energy: user.energy <= 3 ? 3 : user.energy,
-          reset_date: formatDate(today),
-          reset_week_date: isWeekRestarted
-            ? today.getTime() + 7 * 24 * 60 * 60 * 1000
-            : !user.reset_week_date
-            ? today.getTime() + 7 * 24 * 60 * 60 * 1000
-            : user.reset_week_date,
-          objectives_json: {
-            ...user.objectives_json,
-            8: { progress: 1, isCollected: false },
-            9: { progress: 0, isCollected: false },
-            10: { progress: 0, isCollected: false },
-            11: { progress: 0, isCollected: false },
-            12: isWeekRestarted
-              ? { progress: 0, isCollected: false }
-              : user.objectives_json[12],
-            13: isWeekRestarted
-              ? { progress: 0, isCollected: false }
-              : user.objectives_json[13],
-            14: isWeekRestarted
-              ? { progress: 0, isCollected: false }
-              : user.objectives_json[14],
-          },
-        });
+        await strapi
+          .service("api::usercard.usercard")
+          .resetUser(user, today, formatDate);
       }
+
       const data = await getUser(user.id, {
         usercards: {
           populate: {
             card: true,
           },
+        },
+        card_tickets: {
+          populate: true,
+        },
+        action_tickets: {
+          populate: true,
         },
         favorite_actions: {
           populate: true,
@@ -231,6 +212,64 @@ module.exports = createCoreController(
         levelRewards,
       };
       return userDataModified;
+    },
+    async skipAction(ctx) {
+      const { user } = ctx.state;
+      console.log({ user });
+      const SKIP_COST = 25; //@MATH
+
+      if (user.stars < SKIP_COST && !user.is_subscribed) {
+        ctx.throw(400, "Insufficient Stars to Skip");
+      }
+
+      if (user.is_subscribed) {
+        return { success: true };
+      }
+
+      const upload = {
+        stars: user.stars - SKIP_COST,
+      };
+
+      await updateUser(user.id, upload);
+      return { success: true };
+    },
+    async buyCardTicket(ctx) {
+      const user = await getUser(ctx.state.user.id, {
+        card_tickets: true,
+        action_tickets: true,
+      });
+      if (user.energy == 0) {
+        ctx.throw(400, "You don't have enough energy to play this card.");
+      }
+      const card_id = parseInt(ctx.params.id);
+      const type = ctx.request.body.type;
+
+      if (type !== "card" && type !== "action") {
+        ctx.throw(400, "Use action correct type.");
+      }
+
+      // if (Number.isInteger(card_id)) {
+      //   ctx.throw(400, "Please provide correct card id.");
+      // }
+      let upload;
+      if (type == "action") {
+        upload = {
+          action_tickets: [...user.action_tickets, card_id],
+          energy: user.energy - 1,
+        };
+      }
+      if (type == "card") {
+        upload = {
+          card_tickets: [...user.card_tickets, card_id],
+          energy: user.energy - 1,
+        };
+      }
+
+      const data = await updateUser(user.id, upload, {
+        card_tickets: true,
+        action_tickets: true,
+      });
+      return data;
     },
     // DONE
     async updateCard(ctx) {

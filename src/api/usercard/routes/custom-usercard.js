@@ -22,6 +22,16 @@ module.exports = {
     },
     {
       method: "PUT",
+      path: "/usercard/buyCardTicket/:id",
+      handler: "usercard.buyCardTicket",
+    },
+    {
+      method: "PUT",
+      path: "/usercard/skip-action",
+      handler: "usercard.skipAction",
+    },
+    {
+      method: "PUT",
       path: "/usercard/save-avatar/:id",
       handler: "usercard.saveAvatar",
     },
