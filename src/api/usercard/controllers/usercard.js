@@ -271,6 +271,50 @@ module.exports = createCoreController(
       });
       return data;
     },
+    async getRandomCard(ctx) {
+      // 1. get all cards
+      function extractCardsIds(usercards) {
+        return usercards.map(({ card }) => card.id);
+      }
+
+      const user = await getUser(ctx.state.user.id, {
+        usercards: {
+          populate: {
+            card: true,
+          },
+        },
+      });
+      console.log({ user: user.usercards });
+      const cards = await strapi.db.query("api::card.card").findMany({
+        where: {
+          $or: [
+            {
+              is_open: true,
+            },
+            {
+              id: {
+                $in: extractCardsIds(user.usercards),
+              },
+            },
+          ],
+        },
+      });
+      // const cardsOwnedByUser =
+      console.log({ cards });
+      console.log(extractCardsIds(user.usercards));
+
+      function getRandomCard(cardArray) {
+        const randomIndex = Math.floor(Math.random() * cardArray.length);
+        return cardArray[randomIndex];
+      }
+
+      console.log({
+        randomCard: getRandomCard(cards),
+      });
+      return getRandomCard(cards);
+      // 2. filter by user has it unlocked.
+      // 3. return random card.
+    },
     // DONE
     async updateCard(ctx) {
       const user = await getUser(ctx.state.user.id, {

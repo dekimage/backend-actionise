@@ -17,6 +17,11 @@ module.exports = {
     },
     {
       method: "PUT",
+      path: "/usercard/getRandomCard",
+      handler: "usercard.getRandomCard",
+    },
+    {
+      method: "PUT",
       path: "/usercard/claim-artifact/:id",
       handler: "usercard.claimArtifact",
     },

@@ -319,13 +319,8 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     }
     // 0. COMPLETE ACTION
     if (action === "complete_action") {
-      if (user.energy > 0 || user.is_subscribed) {
-        if (!user.is_subscribed) {
-          await strapi
-            .service("api::usercard.usercard")
-            .gainReward(user, "energy", -1);
-        }
-
+      const hasActionTicket = true; // TODO: change it to check real ticket
+      if (hasActionTicket) {
         //update recently completed
         let newRecentActions = user.last_completed_actions || [];
         newRecentActions.push(card_id);
@@ -435,7 +430,8 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
 
     // 2. ========== COMPLETE A CARD:
     if (action === "complete") {
-      if (user.energy > 0 || user.is_subscribed) {
+      const hasCardTicket = true; // TODO: make it real ticket
+      if (hasCardTicket) {
         // add to last completed - maybe as a servrice reusable?
         let new_last_completed = user.last_completed_cards;
         new_last_completed.push(card_id);
@@ -444,12 +440,6 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
         }
         const payload = { last_completed_cards: new_last_completed };
         await updateUser(user.id, payload);
-        //---
-        if (!user.is_subscribed) {
-          await strapi
-            .service("api::usercard.usercard")
-            .gainReward(user, "energy", -1);
-        }
 
         // add update League feature
 
@@ -515,7 +505,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
 
         // think of structured way to ping back notifications/toasters/modals
       } else {
-        ctx.throw(400, `You don't have enough energy to perform this action.`);
+        ctx.throw(400, `You haven't purchased energy ticket for this card.`);
       }
     }
 
@@ -606,9 +596,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     };
   },
   objectivesTrigger: async (user, requirement) => {
-    const objectives = await strapi.db
-      .query("api::objective.objective")
-      .findMany();
+    const objectives = await strapi.db.query("api::objective.objective");
 
     let user_objectives = user.objectives_json || {};
 
