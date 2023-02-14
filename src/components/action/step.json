@@ -12,6 +12,9 @@
     },
     "timer": {
       "type": "integer"
+    },
+    "task": {
+      "type": "string"
     }
   }
 }

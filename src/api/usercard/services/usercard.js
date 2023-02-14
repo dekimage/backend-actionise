@@ -430,7 +430,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
 
     // 2. ========== COMPLETE A CARD:
     if (action === "complete") {
-      const hasCardTicket = true; // TODO: make it real ticket
+      const hasCardTicket = true; // TODO: make it real tickets
       if (hasCardTicket) {
         // add to last completed - maybe as a servrice reusable?
         let new_last_completed = user.last_completed_cards;

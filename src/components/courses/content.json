@@ -10,19 +10,10 @@
     "storyline": {
       "type": "richtext"
     },
-    "timer": {
-      "type": "integer",
-      "default": 0
-    },
     "action": {
       "type": "relation",
       "relation": "oneToOne",
       "target": "api::action.action"
-    },
-    "card": {
-      "type": "relation",
-      "relation": "oneToOne",
-      "target": "api::card.card"
     },
     "duration": {
       "type": "integer"
@@ -36,17 +27,11 @@
     "type": {
       "type": "enumeration",
       "enum": [
+        "theory",
         "action",
         "concept",
         "question"
       ]
-    },
-    "responses": {
-      "type": "json"
-    },
-    "is_ghost": {
-      "type": "boolean",
-      "default": false
     }
   }
 }
