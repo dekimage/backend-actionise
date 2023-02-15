@@ -633,6 +633,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
   },
   objectivesTrigger: async (user, requirement) => {
     const objectives = await strapi.db.query("api::objective.objective");
+    console.log({ objectives });
 
     let user_objectives = user.objectives_json || {};
 
