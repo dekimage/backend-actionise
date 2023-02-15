@@ -106,6 +106,9 @@
     "completed_progress_max": {
       "type": "integer",
       "default": 4
+    },
+    "completed_contents": {
+      "type": "json"
     }
   }
 }

@@ -328,19 +328,22 @@ module.exports = createCoreController(
 
       const card_id = parseInt(ctx.params.id);
       const action = ctx.request.body.action;
+      const contentIndex = ctx.request.body.contentIndex || 0;
+      
       if (
         action !== "complete" &&
         action !== "unlock" &&
         action !== "favorite_card" &&
         action !== "complete_action" &&
-        action !== "favorite_action"
+        action !== "favorite_action" &&
+        action !== "complete_contents"
       ) {
         ctx.throw(400, "You can't update the card with unknown intent.");
       }
 
       let updatedUserCardRelation = await strapi
         .service("api::usercard.usercard")
-        .updateCard(user, card_id, action, ctx);
+        .updateCard(user, card_id, action, ctx, contentIndex);
 
       // OMITTING SENSITIVE DATA TODO: REFETCH QUERY -> NO NEED FOR ANY DATA
       // updatedUserCardRelation["users_permissions_user"] = user.id;

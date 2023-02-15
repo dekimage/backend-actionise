@@ -2,6 +2,15 @@
 
 const { createCoreService } = require("@strapi/strapi").factories;
 
+const addIntegerInArray = (array, integer) => {
+  if (array.includes(integer)) {
+    return array;
+  } else {
+    array.push(integer);
+    return array;
+  }
+};
+
 const resetUserObjectives = async (user_json, isWeekRestarted) => {
   //arr = objectives real
   const arr = await strapi.db.query("api::objective.objective").findMany();
@@ -285,7 +294,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     newOrder.product = newOrder.product.id;
     return newOrder;
   },
-  updateCard: async (user, card_id, action, ctx) => {
+  updateCard: async (user, card_id, action, ctx, contentIndex) => {
     const card = await strapi.db.query("api::card.card").findOne({
       where: {
         id: card_id,
@@ -311,6 +320,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
               is_unlocked: true,
               is_new: true,
               user_name: user.username,
+              completed_contents: [],
             },
           });
         return newUserCardRelation;
@@ -428,6 +438,31 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
       return;
     }
 
+    // 1.75 ========= COMPLETE A CONTENT
+    if (action === "complete_contents") {
+      if (typeof parseInt(contentIndex) !== "number") {
+        ctx.throw(400, "invalid index sent");
+      }
+
+      const updatedUserRelation = addIntegerInArray(
+        userCardRelation.completed_contents || [],
+        contentIndex
+      );
+
+      const update = {
+        completed_contents: updatedUserRelation,
+      };
+
+      const usercardUpdated = await strapi.db
+        .query("api::usercard.usercard")
+        .update({
+          where: { user: user.id, card: card_id },
+          data: update,
+        });
+
+      return usercardUpdated;
+    }
+
     // 2. ========== COMPLETE A CARD:
     if (action === "complete") {
       const hasCardTicket = true; // TODO: make it real tickets
@@ -477,6 +512,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
           completed_progress_max: updatedProgressMax,
           completed: updatedCompleted,
           completed_at: Date.now(),
+          completed_contents: [],
         };
 
         const usercardUpdated = await strapi.db
