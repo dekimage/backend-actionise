@@ -308,10 +308,13 @@ module.exports = createCoreController(
         return cardArray[randomIndex];
       }
 
-      console.log({
-        randomCard: getRandomCard(cards),
+      let randomCard = await strapi.db.query("api::card.card").findOne({
+        where: { id: getRandomCard(cards).id },
+        populate: true,
       });
-      return getRandomCard(cards);
+      randomCard.createdBy = "";
+      randomCard.updatedBy = "";
+      return randomCard;
       // 2. filter by user has it unlocked.
       // 3. return random card.
     },
@@ -329,7 +332,7 @@ module.exports = createCoreController(
       const card_id = parseInt(ctx.params.id);
       const action = ctx.request.body.action;
       const contentIndex = ctx.request.body.contentIndex || 0;
-      
+
       if (
         action !== "complete" &&
         action !== "unlock" &&

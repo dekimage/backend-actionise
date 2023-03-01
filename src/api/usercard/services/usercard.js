@@ -299,6 +299,19 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
       where: {
         id: card_id,
       },
+      populate: {
+        days: {
+          populate: {
+            contents: true,
+          },
+        },
+      },
+
+      // populate: {
+      //   days: {
+      //     contents: true,
+      //   },
+      // },
     });
 
     async function generateUserCardRelation() {
@@ -465,8 +478,24 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
 
     // 2. ========== COMPLETE A CARD:
     if (action === "complete") {
-      const hasCardTicket = true; // TODO: make it real tickets
-      if (hasCardTicket) {
+      if (
+        userCardRelation.completed_contents?.length !==
+        card.days[card.last_day || 0].contents.length
+      ) {
+        ctx.throw(400, "you havent completed all contents yet!");
+      }
+
+      function lessThan24HoursAgo(dateVariable) {
+        if (!dateVariable) {
+          return true;
+        }
+        const now = Date.now();
+        const timeDiff = now - dateVariable;
+        const hoursDiff = timeDiff / (1000 * 60 * 60);
+        return hoursDiff > 24;
+      }
+
+      if (lessThan24HoursAgo(userCardRelation.completed_at)) {
         // add to last completed - maybe as a servrice reusable?
         let new_last_completed = user.last_completed_cards;
         new_last_completed.push(card_id);
@@ -538,10 +567,8 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
             stats: artifactData.data,
           },
         };
-
-        // think of structured way to ping back notifications/toasters/modals
       } else {
-        ctx.throw(400, `You haven't purchased energy ticket for this card.`);
+        ctx.throw(400, "you need to wait xx before you can complete it again");
       }
     }
 
@@ -635,7 +662,6 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     const objectives = await strapi.db
       .query("api::objective.objective")
       .findMany();
-    console.log({ objectives });
 
     let user_objectives = user.objectives_json || {};
 

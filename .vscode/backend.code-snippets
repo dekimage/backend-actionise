@@ -1,11 +1,4 @@
 {
-  "Test": {
-    "prefix": ["comp"],
-    "body": [
-      "const ${1:Component} = ({${2:props}}) => { return ( <div className={styles.${3:classname}}>$0</div>) }"
-    ],
-    "description": "Functional Component"
-  },
   "SnippetTemplate": {
     "prefix": ["snippet"],
     "body": [
@@ -19,6 +12,14 @@
     ],
     "description": "Create Snippet"
   },
+  "Test": {
+    "prefix": ["comp"],
+    "body": [
+      "const ${1:Component} = ({${2:props}}) => { return ( <div className={styles.${3:classname}}>$0</div>) }"
+    ],
+    "description": "Functional Component"
+  },
+
   "StrapiFindMany": {
     "prefix": ["findMany"],
     "body": [
