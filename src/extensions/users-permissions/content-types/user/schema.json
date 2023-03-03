@@ -261,6 +261,9 @@
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::action.action"
+    },
+    "is_notify_me": {
+      "type": "boolean"
     }
   }
 }

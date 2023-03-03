@@ -60,10 +60,10 @@ const determineRarity = () => {
 };
 
 const starAmountByRarity = {
-  common: 25,
-  rare: 50,
-  epic: 100,
-  legendary: 200,
+  common: 50,
+  rare: 75,
+  epic: 125,
+  legendary: 250,
 };
 
 function getRandomStars() {
@@ -73,7 +73,21 @@ function getRandomStars() {
 }
 // @calc
 function getXpLimit(level) {
-  return 100 + level * 10 * 1.6;
+  // old // return 100 + level * 10 * 1.6;
+  //chatGPT - enhanced
+  const INCREASE_PER_LEVEL = 3.29;
+  const STARTING_XP = 300;
+
+  function calculateXpValue(startingXp, increase, iteration) {
+    let xp = startingXp;
+
+    for (let i = 1; i < iteration; i++) {
+      xp += Math.ceil(xp * (increase / 100));
+    }
+
+    return xp;
+  }
+  return calculateXpValue(STARTING_XP, INCREASE_PER_LEVEL, level);
 }
 
 const sanitizeUser = (user) => {
@@ -132,7 +146,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     let starsGained; // for return to frontend only
 
     //1. XP (daily + 50, weekly + 250)
-    const xpPerObjective = { daily: 50, weekly: 250 };
+    const xpPerObjective = { daily: 75, weekly: 250 };
     const xpGained = xpPerObjective[objective.time_type];
     const xpLimit = getXpLimit(user.level);
 
@@ -177,8 +191,8 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
       //3.2. gain artifact maybe 16.6% chance
       const chanceToGainArtifact = 0.166;
       const randomInt = Math.random();
-      // const shouldGainArtifact = randomInt >= chanceToGainArtifact;
-      const shouldGainArtifact = true;
+      const shouldGainArtifact = randomInt <= chanceToGainArtifact;
+      // const shouldGainArtifact = true;
 
       if (shouldGainArtifact) {
         artifactData = await strapi
@@ -560,6 +574,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
         const artifactData = await strapi
           .service("api::usercard.usercard")
           .achievementTrigger(user, "cards_complete");
+
         return {
           usercard: usercardUpdated,
           modal: artifactData && {

@@ -6,6 +6,11 @@ module.exports = {
       handler: "usercard.resetUser",
     },
     {
+      method: "PUT",
+      path: "/usercard/notify-me",
+      handler: "usercard.notifyMe",
+    },
+    {
       method: "GET",
       path: "/usercard/me",
       handler: "usercard.me",

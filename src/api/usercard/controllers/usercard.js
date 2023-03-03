@@ -77,6 +77,19 @@ module.exports = createCoreController(
       const data = updateUser(user.id, payload);
       return data;
     },
+    async notifyMe(ctx) {
+      const user = await getUser(ctx.state.user.id);
+      const isNotifyMe = ctx.request.body.isNotifyMe;
+      if (typeof isNotifyMe !== "boolean") {
+        ctx.throw(400, "invalid input, must be boolean");
+      }
+      const upload = {
+        is_notify_me: isNotifyMe,
+      };
+
+      await updateUser(user.id, upload);
+      return { success: true };
+    },
     async acceptReferral(ctx) {
       const user = await getUser(ctx.state.user.id, { shared_by: true });
       // update self
@@ -707,6 +720,7 @@ module.exports = createCoreController(
       };
 
       let payload = { objectives_json: updated_user_objectives };
+
       if (
         objective.requirement == "login" &&
         user.streak >= (user.highest_streak_count || 0)
