@@ -107,6 +107,10 @@
     "last_day": {
       "type": "integer",
       "default": 0
+    },
+    "coming_soon": {
+      "type": "boolean",
+      "default": false
     }
   }
 }
