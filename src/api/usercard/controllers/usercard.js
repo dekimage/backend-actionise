@@ -12,7 +12,6 @@ const sanitizeUser = (user) => {
   delete user["createdAt"];
   return user;
 };
-
 const formatDate = (date) => {
   const padTo2Digits = (num) => {
     return num.toString().padStart(2, "0");
@@ -43,7 +42,6 @@ const getUser = async (id, populate = {}) => {
     });
   return sanitizeUser(entry);
 };
-
 const updateUser = async (id, payload, populate = {}) => {
   const defaultPopulate = { usercards: true, orders: true };
   const user = await strapi.db.query("plugin::users-permissions.user").update({
@@ -90,6 +88,33 @@ module.exports = createCoreController(
       await updateUser(user.id, upload);
       return { success: true };
     },
+    async rateCard(ctx) {
+      const availableRatings = [1, 2, 3, 4, 5, 6, 7, 8];
+      const user = await getUser(ctx.state.user.id);
+      const rating = ctx.request.body.rating;
+      const cardId = ctx.request.body.rating;
+      const usercard = getUserCard(user.id, cardId);
+
+      if (typeof rating !== "number" && !availableRatings.includes(rating)) {
+        ctx.throw(400, "invalid input, must be proper rating number");
+      }
+
+      if (!usercard) {
+        ctx.throw(400, "invalid card, you don't have this card unlocked yet");
+      }
+      const upload = {
+        rating: rating,
+      };
+
+      const usercardUpdated = await strapi.db
+        .query("api::usercard.usercard")
+        .update({
+          where: { user: user.id, card: parseInt(cardId) },
+          data: upload,
+        });
+
+      return { success: true };
+    },
     async acceptReferral(ctx) {
       const user = await getUser(ctx.state.user.id, { shared_by: true });
       // update self
@@ -117,7 +142,6 @@ module.exports = createCoreController(
       await updateUser(sharedUserId, sharedUpload);
       return { success: true };
     },
-    //DONE
     async me(ctx) {
       const user = ctx.state.user;
 
@@ -131,7 +155,9 @@ module.exports = createCoreController(
         .query("api::artifact.artifact")
         .count();
 
-      const cards_count = await strapi.db.query("api::card.card").count();
+      const cards_count = await strapi.db
+        .query("api::card.card")
+        .count({ is_open: false });
       const levelRewards = await strapi.db
         .query("api::levelreward.levelreward")
         .findMany({
@@ -228,7 +254,8 @@ module.exports = createCoreController(
     },
     async skipAction(ctx) {
       const { user } = ctx.state;
-      console.log({ user });
+      return { success: true };
+      // OLD if it costs to skip
       const SKIP_COST = 25; //@MATH
 
       if (user.stars < SKIP_COST && !user.is_subscribed) {
@@ -331,7 +358,6 @@ module.exports = createCoreController(
       // 2. filter by user has it unlocked.
       // 3. return random card.
     },
-    // DONE
     async updateCard(ctx) {
       const user = await getUser(ctx.state.user.id, {
         last_completed_cards: true,
@@ -380,7 +406,6 @@ module.exports = createCoreController(
       const data = await updateUser(user.id, upload);
       return data.tutorial_step;
     },
-    // DONE
     async collectStreakReward(ctx) {
       const user = await getUser(ctx.state.user.id, {
         shared_buddies: true,
@@ -480,7 +505,6 @@ module.exports = createCoreController(
         };
       }
     },
-    // DONE
     async collectFriendsReward(ctx) {
       // static data
       const user = await getUser(ctx.state.user.id, {
@@ -554,7 +578,6 @@ module.exports = createCoreController(
         },
       };
     },
-    // DONE
     async collectLevelReward(ctx) {
       // static data
       const user = await getUser(ctx.state.user.id, {
@@ -634,7 +657,6 @@ module.exports = createCoreController(
         },
       };
     },
-    // DONE
     async claimArtifact(ctx) {
       const artifactId = ctx.params.id;
       const user = await getUser(ctx.state.user.id, {
@@ -754,7 +776,6 @@ module.exports = createCoreController(
         artifactTrigger: artifactData,
       };
     },
-    // DONE
     async purchaseProduct(ctx) {
       const user = await getUser(ctx.state.user.id, {
         orders: {
@@ -887,7 +908,6 @@ module.exports = createCoreController(
         return newOrder;
       }
     },
-    // DONE
     async followBuddy(ctx) {
       const user = await getUser(ctx.state.user.id, { followers: true });
 
@@ -921,7 +941,6 @@ module.exports = createCoreController(
       });
       return sanitizedData;
     },
-    // DONE
     async cancelSubscription(ctx) {
       const user = await getUser(ctx.state.user.id);
 

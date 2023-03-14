@@ -11,6 +11,11 @@ module.exports = {
       handler: "usercard.notifyMe",
     },
     {
+      method: "PUT",
+      path: "/usercard/rate-card",
+      handler: "usercard.rateCard",
+    },
+    {
       method: "GET",
       path: "/usercard/me",
       handler: "usercard.me",

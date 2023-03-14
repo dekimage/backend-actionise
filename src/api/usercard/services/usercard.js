@@ -71,7 +71,7 @@ function getRandomStars() {
   const stars = starAmountByRarity[rarity];
   return stars;
 }
-// @calc
+
 function getXpLimit(level) {
   // old // return 100 + level * 10 * 1.6;
   //chatGPT - enhanced
@@ -496,7 +496,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
         userCardRelation.completed_contents?.length !==
         card.days[card.last_day || 0].contents.length
       ) {
-        ctx.throw(400, "you havent completed all contents yet!");
+        ctx.throw(400, "You havent completed all contents yet!");
       }
 
       function lessThan24HoursAgo(dateVariable) {
@@ -548,6 +548,13 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
 
         if (updatedLeague !== userCardRelation.league) {
           // trigger achievement for the league type
+        }
+
+        // First Time Bonus
+        if (userCardRelation.completed < 1) {
+          await strapi
+            .service("api::usercard.usercard")
+            .gainReward(user, "stars", 100);
         }
 
         const update = {
@@ -623,18 +630,16 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     let user_stats = user.stats || {
       claimed_artifacts: 0,
       cards_complete: 0,
-      action_complete: 0,
       card_unlock: 0,
       daily_objectives_complete: 0,
       weekly_objectives_complete: 0,
     };
     // @MATH
     const artifactTable = {
-      cards_complete: [1, 2],
-      action_complete: [1, 2],
-      card_unlock: [1, 2],
-      daily_objectives_complete: [1, 2],
-      weekly_objectives_complete: [1, 2],
+      cards_complete: [5, 10, 25, 50, 75, 100, 200, 300, 500, 1000],
+      card_unlock: [3, 5, 10, 20, 30, 40],
+      daily_objectives_complete: [15, 30, 75, 100, 150, 250],
+      weekly_objectives_complete: [5, 15, 25],
     };
 
     if (!artifactTable[requirement]) {

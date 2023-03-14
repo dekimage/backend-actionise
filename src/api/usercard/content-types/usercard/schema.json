@@ -109,6 +109,9 @@
     },
     "completed_contents": {
       "type": "json"
+    },
+    "rating": {
+      "type": "integer"
     }
   }
 }
