@@ -2,6 +2,11 @@ module.exports = {
   routes: [
     {
       method: "PUT",
+      path: "/usercard/send-feature-mail",
+      handler: "usercard.sendFeatureMail",
+    },
+    {
+      method: "PUT",
       path: "/usercard/reset-user",
       handler: "usercard.resetUser",
     },

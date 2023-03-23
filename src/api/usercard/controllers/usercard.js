@@ -1,9 +1,11 @@
 "use strict";
 const { createCoreController } = require("@strapi/strapi").factories;
-
+const { createToken } = require("../../../../utils/functions");
+const bcrypt = require("bcryptjs");
 const sanitizeUser = (user) => {
   delete user["provider"];
   delete user["password"];
+  delete user["reset_password_token"];
   delete user["resetPasswordToken"];
   delete user["confirmationToken"];
   delete user["confirmed"];
@@ -141,6 +143,42 @@ module.exports = createCoreController(
 
       await updateUser(sharedUserId, sharedUpload);
       return { success: true };
+    },
+    async sendFeatureMail(ctx) {
+      const { details, subject } = ctx.request.body;
+
+      // Check if user has exceeded suggestion limit for the day
+      const user = ctx.state.user;
+      const name = user.username;
+      const email = user.email;
+      const suggestionLimit = 25; // maximum number of suggestions
+
+      const suggestionCount = user.mail_send_count || 0;
+
+      if (suggestionCount >= suggestionLimit) {
+        return ctx.badRequest(
+          `You have exceeded the suggestion limit of ${suggestionLimit}. Please contact us at our email contact@actionise.com if you wish this limit to reset.`
+        );
+      }
+
+      // Send email with user's input details using SendGrid API
+
+      await strapi.plugins["email"].services.email.send({
+        to: "contact@actionise.com",
+        subject: subject || "New email",
+        text: `Name: ${name}\nEmail: ${email}\nDetails: ${details}`,
+      });
+
+      // Update user's suggestion count and last suggestion date
+      const upload = {
+        mail_send_count: suggestionCount + 1,
+      };
+      await updateUser(user.id, upload);
+
+      // Return success message
+      return {
+        message: "Feature suggestion or bug report submitted successfully.",
+      };
     },
     async me(ctx) {
       const user = ctx.state.user;

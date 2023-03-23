@@ -36,5 +36,18 @@ module.exports = ({ env }) => {
     "strapi-google-auth": {
       enabled: true,
     },
+    email: {
+      config: {
+        provider: "sendgrid",
+        providerOptions: {
+          apiKey: env("SENDGRID_API_KEY"),
+        },
+        settings: {
+          defaultFrom: "contact@actionise.com",
+          defaultReplyTo: "contact@actionise.com",
+          testAddress: "dejan.gavrilovikk@gmail.com",
+        },
+      },
+    },
   };
 };

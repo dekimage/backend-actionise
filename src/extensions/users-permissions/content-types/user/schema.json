@@ -264,6 +264,15 @@
     },
     "is_notify_me": {
       "type": "boolean"
+    },
+    "age": {
+      "type": "integer"
+    },
+    "gender": {
+      "type": "string"
+    },
+    "mail_send_count": {
+      "type": "integer"
     }
   }
 }
