@@ -57,6 +57,25 @@ const updateUser = async (id, payload, populate = {}) => {
 module.exports = createCoreController(
   "api::usercard.usercard",
   ({ strapi }) => ({
+    async updateUserBasicInfo(ctx) {
+      const user = await getUser(ctx.state.user.id);
+      const { value, inputName } = ctx.request.body;
+      if (!value || !inputName) {
+        ctx.throw(400, "invalid input");
+      }
+      if (
+        inputName !== "username" &&
+        inputName !== "age" &&
+        inputName !== "gender"
+      ) {
+        ctx.throw(400, "invalid input");
+      }
+      const payload = {
+        [inputName]: value,
+      };
+      const data = updateUser(user.id, payload);
+      return data;
+    },
     async resetUser(ctx) {
       const user = ctx.state.user;
       let payload = {
@@ -501,14 +520,9 @@ module.exports = createCoreController(
 
       // GAIN CARD
       if (streakReward.reward_type === "card") {
-        const payload = {
-          card: streakReward.reward_card,
-          quantity: streakReward.reward_amount,
-        };
-
         updatedRewards = await strapi
           .service("api::usercard.usercard")
-          .gainCard(user, payload, true);
+          .gainCard(user, streakReward.reward_card.id);
 
         return {
           streak_count: data.streak_count,
@@ -546,7 +560,6 @@ module.exports = createCoreController(
     async collectFriendsReward(ctx) {
       // static data
       const user = await getUser(ctx.state.user.id, {
-        shared_buddies: true,
         artifacts: true,
       });
 
@@ -565,7 +578,7 @@ module.exports = createCoreController(
         return ctx.badRequest("This friend reward does not exist.");
       }
 
-      if (user.shared_buddies.length < friendsReward.friends_count) {
+      if (user.highest_buddy_shares.length < friendsReward.friends_count) {
         return ctx.badRequest(
           "You don't have enough connected buddies yet to unlock this reward."
         );
@@ -587,6 +600,17 @@ module.exports = createCoreController(
       let updatedRewards;
 
       // TODO: ADD HERE WAY TO GAIN PREMIUM DAYS OR ORBS FOR BOTH USERS
+
+      // GAIN CARD
+      if (friendsReward.reward_type === "card") {
+        updatedRewards = await strapi
+          .service("api::usercard.usercard")
+          .gainCard(user, friendsReward.reward_card.id);
+
+        return {
+          updatedRewards,
+        };
+      }
 
       // GAIN REWARDS SERVICE TRIGGER
       if (friendsReward.artifact) {

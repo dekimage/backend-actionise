@@ -1,0 +1,21 @@
+{
+  "kind": "collectionType",
+  "collectionName": "webpages",
+  "info": {
+    "singularName": "webpage",
+    "pluralName": "webpages",
+    "displayName": "webpage"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "content": {
+      "type": "richtext"
+    }
+  }
+}

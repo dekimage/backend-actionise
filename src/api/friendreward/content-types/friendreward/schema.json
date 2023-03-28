@@ -21,7 +21,8 @@
     "reward_card": {
       "type": "relation",
       "relation": "oneToOne",
-      "target": "api::card.card"
+      "target": "api::card.card",
+      "inversedBy": "friendreward"
     },
     "artifact": {
       "type": "relation",

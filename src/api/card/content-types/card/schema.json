@@ -111,6 +111,12 @@
     "coming_soon": {
       "type": "boolean",
       "default": false
+    },
+    "friendreward": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::friendreward.friendreward",
+      "inversedBy": "reward_card"
     }
   }
 }

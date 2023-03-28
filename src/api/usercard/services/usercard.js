@@ -708,4 +708,31 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
       objectives_json: data.objectives_json,
     };
   },
+  gainCard: async (user, cardId) => {
+    // payload = {
+    //   card: 2,  => if fromBox = true // from PACKS
+    // };
+
+    // logic ->
+    const userCardRelation = await getUserCard(user.id, cardId);
+
+    if (userCardRelation) {
+      //update
+      return { message: "you already have this card" };
+    } else {
+      //create new
+      await strapi.db.query("api::usercard.usercard").create({
+        data: {
+          user: user.id,
+          card: cardId,
+          user_name: user.username,
+          completed: 0,
+          is_unlocked: true,
+        },
+      });
+    }
+    return {
+      card: cardId,
+    };
+  },
 }));

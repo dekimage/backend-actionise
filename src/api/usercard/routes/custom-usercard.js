@@ -7,6 +7,11 @@ module.exports = {
     },
     {
       method: "PUT",
+      path: "/usercard/update-user-basic-info",
+      handler: "usercard.updateUserBasicInfo",
+    },
+    {
+      method: "PUT",
       path: "/usercard/reset-user",
       handler: "usercard.resetUser",
     },
