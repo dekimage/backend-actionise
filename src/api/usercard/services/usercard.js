@@ -73,7 +73,6 @@ function getRandomStars() {
 }
 
 function getXpLimit(level) {
-  // old // return 100 + level * 10 * 1.6;
   //chatGPT - enhanced
   const INCREASE_PER_LEVEL = 3.29;
   const STARTING_XP = 300;
@@ -124,7 +123,37 @@ const getUserCard = async (userId, cardId) => {
 };
 
 module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
-  //DONE
+  sendEmailTemplate: async (template) => {
+    const defaultTemplate = "welcome-email";
+
+    const emailTemplate = {
+      subject: "Welcome <%= user.username %>",
+      text: `Welcome to mywebsite.fr!
+        Your account is now linked with: <%= user.email %>.`,
+      html: fs.readFileSync(
+        path.join(
+          __dirname,
+          `../../../extensions/email/templates/${
+            template || defaultTemplate
+          }.html`
+        ),
+        "utf8"
+      ),
+    };
+
+    await strapi.plugins["email"].services.email.sendTemplatedEmail(
+      {
+        // to: user.email, TODO:
+        to: "dejan.gavrilovikk@gmail.com",
+      },
+      emailTemplate,
+      {
+        user: { username: "deno", email: "dejan.gavrilovikk@gmail.com" },
+      }
+    );
+
+    return { success: true };
+  },
   resetUser: async (user, today, formatDate) => {
     const { resetWeekDate, isWeekRestarted } = calculateWeekReset(user, today);
 
@@ -150,10 +179,11 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     const xpGained = xpPerObjective[objective.time_type];
     const xpLimit = getXpLimit(user.level);
 
-    if (user.xp + xpGained > xpLimit) {
+    if (user.xp + xpGained >= xpLimit) {
       payload = {
         xp: user.xp + xpGained - xpLimit,
         level: user.level + 1,
+        xpLimit: getXpLimit(user.level + 1),
       };
     } else {
       payload = {
@@ -207,10 +237,12 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     //MODALS CAN BE ARRAY -> CONSTRUCTED WAY
 
     return {
-      xp: xpGained,
+      xp: payload.xp,
+      xpGained: xpGained,
       level: payload.level,
+      xpLimit: getXpLimit(payload.level),
       stars: starsGained,
-      isLevelnew: user.xp + xpGained > xpLimit,
+      isLevelnew: user.xp + xpGained >= xpLimit,
       artifact: artifactData.artifact,
     };
 
@@ -341,11 +373,10 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
             data: {
               user: user.id,
               card: card.id,
-              quantity: 1,
               completed: 0,
-              glory_points: 0,
               is_unlocked: true,
               is_new: true,
+              card_name: card.name,
               user_name: user.username,
               completed_contents: [],
             },
@@ -438,6 +469,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
             glory_points: 0,
             is_unlocked: true,
             user_name: user.username,
+            card_name: card.name,
           },
         });
 
@@ -571,6 +603,11 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
             where: { user: user.id, card: card_id },
             data: update,
           });
+
+        // update mastery
+        await updateUser(user.id, {
+          stats: { ...user.stats, mastery: user.stats.mastery + 1 },
+        });
 
         //update objectives
         await strapi
@@ -726,6 +763,7 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
           user: user.id,
           card: cardId,
           user_name: user.username,
+          card_name: card.name,
           completed: 0,
           is_unlocked: true,
         },

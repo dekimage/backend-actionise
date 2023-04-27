@@ -273,6 +273,13 @@
     },
     "mail_send_count": {
       "type": "integer"
+    },
+    "xpLimit": {
+      "type": "integer",
+      "default": 300
+    },
+    "email_preferences": {
+      "type": "json"
     }
   }
 }

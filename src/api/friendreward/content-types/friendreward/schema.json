@@ -22,7 +22,7 @@
       "type": "relation",
       "relation": "oneToOne",
       "target": "api::card.card",
-      "inversedBy": "friendreward"
+      "mappedBy": "friendreward"
     },
     "artifact": {
       "type": "relation",

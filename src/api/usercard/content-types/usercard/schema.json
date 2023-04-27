@@ -24,7 +24,8 @@
       "target": "api::card.card"
     },
     "user_name": {
-      "type": "string"
+      "type": "string",
+      "private": true
     },
     "level": {
       "type": "integer",
@@ -101,7 +102,8 @@
         "platinum",
         "diamond",
         "grandmaster"
-      ]
+      ],
+      "default": "unranked"
     },
     "completed_progress_max": {
       "type": "integer",
@@ -111,7 +113,19 @@
       "type": "json"
     },
     "rating": {
-      "type": "integer"
+      "type": "integer",
+      "default": 0
+    },
+    "card_name": {
+      "type": "string",
+      "private": true,
+      "default": "null"
+    },
+    "message": {
+      "type": "text"
+    },
+    "isRated": {
+      "type": "boolean"
     }
   }
 }

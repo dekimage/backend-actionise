@@ -40,9 +40,11 @@ module.exports = {
           .update({
             where: { id: result.id },
             data: {
+              xpLimit: 300,
               reset_week_date: new Date().getTime() + 7 * 24 * 60 * 60 * 1000,
               highest_buddy_shares: 0,
               highest_streak_count: 0,
+              avatar: 1,
               objectives_json: await createNewUserObjectives(),
               rewards_tower: {
                 1: false,
@@ -54,12 +56,21 @@ module.exports = {
                 1: false,
               },
               stats: {
+                mastery: 0,
                 card_unlock: 0,
                 cards_complete: 0,
                 action_complete: 0,
                 claimed_artifacts: 0,
                 daily_objectives_complete: 0,
                 weekly_objectives_complete: 0,
+              },
+              email_preferences: {
+                newsletter: true,
+                promotions: true,
+                content: true,
+                updates: true,
+                reminders: true,
+                unsubscribe: false,
               },
             },
           });
@@ -75,8 +86,10 @@ module.exports = {
         //     user_name: user.username,
         //   },
         // });
+        await strapi.service("api::usercard.usercard").sendEmailTemplate();
         return user;
       },
     });
   },
 };
+``;

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Welcome to Our Company!</title>
+    <style>
+      /* Define your styles here */
+      body {
+        background-color: #f0f0f0;
+        font-family: Arial, sans-serif;
+        text-align: center;
+      }
+
+      .header {
+        padding: 20px;
+        background-color: #0052cc;
+      }
+
+      .logo {
+        max-width: 200px;
+        margin: 0 auto;
+        display: block;
+      }
+
+      .title {
+        color: #0052cc;
+        font-size: 36px;
+        margin: 40px 0;
+      }
+
+      .button {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #0052cc;
+        color: #fff;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: bold;
+        margin: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <img
+        class="logo"
+        src="https://www.example.com/images/logo.png"
+        alt="Company Logo"
+      />
+    </div>
+    <div class="content">
+      <h1 class="title">Welcome to Our Company!</h1>
+      <p>Dear <%= user.username %>,</p>
+      <p>
+        Thank you for joining our community! We're excited to have you on board.
+      </p>
+      <p>Click the button below to get started:</p>
+      <a class="button" href="[LINK TO GET STARTED]">Get Started</a>
+    </div>
+  </body>
+</html>

@@ -1,4 +1,6 @@
 "use strict";
+const fs = require("fs");
+const path = require("path");
 const { createCoreController } = require("@strapi/strapi").factories;
 const { createToken } = require("../../../../utils/functions");
 const bcrypt = require("bcryptjs");
@@ -26,8 +28,8 @@ const formatDate = (date) => {
 };
 const getUserCard = async (userId, cardId) => {
   const userCardRelation = await strapi
-    .query("usercard")
-    .findOne({ users_permissions_user: userId, card: cardId }, ["quantity"]);
+    .query("api::usercard.usercard")
+    .findOne({ where: { user: userId, card: cardId } });
   return userCardRelation;
 };
 const getUser = async (id, populate = {}) => {
@@ -57,6 +59,19 @@ const updateUser = async (id, payload, populate = {}) => {
 module.exports = createCoreController(
   "api::usercard.usercard",
   ({ strapi }) => ({
+    async updateSettings(ctx) {
+      const user = await getUser(ctx.state.user.id);
+      const { settings } = ctx.request.body;
+      if (!settings) {
+        ctx.throw(400, "invalid input");
+      }
+      const payload = {
+        email_preferences: settings,
+      };
+      const data = updateUser(user.id, payload);
+      console.log(data);
+      return data;
+    },
     async updateUserBasicInfo(ctx) {
       const user = await getUser(ctx.state.user.id);
       const { value, inputName } = ctx.request.body;
@@ -113,28 +128,52 @@ module.exports = createCoreController(
       const availableRatings = [1, 2, 3, 4, 5, 6, 7, 8];
       const user = await getUser(ctx.state.user.id);
       const rating = ctx.request.body.rating;
-      const cardId = ctx.request.body.rating;
-      const usercard = getUserCard(user.id, cardId);
+      const cardId = parseInt(ctx.request.body.cardId);
+      const feedbackType = ctx.request.body.feedbackType;
+      let upload;
+      let hasRated = false;
 
-      if (typeof rating !== "number" && !availableRatings.includes(rating)) {
-        ctx.throw(400, "invalid input, must be proper rating number");
+      if (feedbackType !== "message" && feedbackType !== "rating") {
+        ctx.throw(400, "invalid input, must be proper feedback type");
       }
+
+      const usercard = await getUserCard(user.id, cardId);
 
       if (!usercard) {
         ctx.throw(400, "invalid card, you don't have this card unlocked yet");
       }
-      const upload = {
-        rating: rating,
-      };
+      // IF RATING
+      if (feedbackType === "rating") {
+        if (typeof rating !== "number" && !availableRatings.includes(rating)) {
+          ctx.throw(400, "invalid input, must be proper rating number");
+        }
+        upload = {
+          rating: rating,
+        };
+      }
+      // IF MESSAGE
+      if (feedbackType === "message") {
+        upload = {
+          message: rating,
+          isRated: true,
+        };
+      }
+
+      if (!usercard.isRated) {
+        await strapi
+          .service("api::usercard.usercard")
+          .gainReward(user, "stars", 25);
+        hasRated = true;
+      }
 
       const usercardUpdated = await strapi.db
         .query("api::usercard.usercard")
         .update({
-          where: { user: user.id, card: parseInt(cardId) },
+          where: { user: user.id, card: cardId },
           data: upload,
         });
 
-      return { success: true };
+      return { usercard: usercardUpdated, hasRated };
     },
     async acceptReferral(ctx) {
       const user = await getUser(ctx.state.user.id, { shared_by: true });
@@ -341,6 +380,12 @@ module.exports = createCoreController(
       const card_id = parseInt(ctx.params.id);
       const type = ctx.request.body.type;
 
+      const card = await strapi.db.query("api::card.card").findOne({
+        where: {
+          id: card_id,
+        },
+      });
+
       if (type !== "card" && type !== "action") {
         ctx.throw(400, "Use action correct type.");
       }
@@ -348,6 +393,31 @@ module.exports = createCoreController(
       // if (Number.isInteger(card_id)) {
       //   ctx.throw(400, "Please provide correct card id.");
       // }
+
+      const usercard = await strapi.db.query("api::usercard.usercard").findOne({
+        where: { user: user.id, card: card_id },
+        populate: true,
+      });
+
+      if (!card.is_open && !usercard) {
+        ctx.throw(400, "You don't have this card unlocked.");
+      }
+
+      if (card.is_open && !usercard) {
+        const newUserCardRelation = await strapi.db
+          .query("api::usercard.usercard")
+          .create({
+            data: {
+              user: user.id,
+              card: card.id,
+              completed: 0,
+              is_unlocked: true,
+              user_name: user.username,
+              card_name: card.name,
+            },
+          });
+      }
+
       let upload;
       if (type == "action") {
         upload = {
@@ -365,6 +435,11 @@ module.exports = createCoreController(
       const data = await updateUser(user.id, upload, {
         card_tickets: true,
         action_tickets: true,
+        usercards: {
+          populate: {
+            card: true,
+          },
+        },
       });
       return data;
     },
