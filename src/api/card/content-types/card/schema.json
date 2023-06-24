@@ -121,6 +121,78 @@
     "isContentAi": {
       "type": "boolean",
       "default": false
+    },
+    "quotes": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::quote.quote",
+      "mappedBy": "card"
+    },
+    "ideas": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::idea.idea",
+      "mappedBy": "card"
+    },
+    "faqs": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::faq.faq",
+      "mappedBy": "card"
+    },
+    "expertopinions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::expertopinion.expertopinion",
+      "mappedBy": "card"
+    },
+    "casestudies": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::casestudy.casestudy",
+      "mappedBy": "card"
+    },
+    "stories": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::story.story",
+      "mappedBy": "card"
+    },
+    "tips": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::tip.tip",
+      "mappedBy": "card"
+    },
+    "exercises": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::exercise.exercise",
+      "mappedBy": "card"
+    },
+    "metaphores": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::metaphore.metaphore",
+      "mappedBy": "card"
+    },
+    "questions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::question.question",
+      "mappedBy": "card"
+    },
+    "experiments": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::experiment.experiment",
+      "mappedBy": "card"
+    },
+    "expansion": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::expansion.expansion",
+      "inversedBy": "cards"
     }
   }
 }

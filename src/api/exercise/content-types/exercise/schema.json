@@ -1,0 +1,61 @@
+{
+  "kind": "collectionType",
+  "collectionName": "exercises",
+  "info": {
+    "singularName": "exercise",
+    "pluralName": "exercises",
+    "displayName": "Exercise",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "content": {
+      "type": "richtext"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "one-time",
+        "repetitive",
+        "triggered"
+      ]
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "sortOrder": {
+      "type": "integer",
+      "default": 1
+    },
+    "isOpen": {
+      "type": "boolean",
+      "default": true
+    },
+    "card": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::card.card",
+      "inversedBy": "exercises"
+    },
+    "title": {
+      "type": "string"
+    },
+    "bestTime": {
+      "type": "string"
+    },
+    "duration": {
+      "type": "integer"
+    }
+  }
+}

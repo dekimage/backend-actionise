@@ -1,0 +1,47 @@
+{
+  "kind": "collectionType",
+  "collectionName": "ideas",
+  "info": {
+    "singularName": "idea",
+    "pluralName": "ideas",
+    "displayName": "Idea",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "content": {
+      "type": "richtext"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "card": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::card.card",
+      "inversedBy": "ideas"
+    },
+    "sortOrder": {
+      "type": "integer",
+      "default": 1
+    },
+    "isOpen": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

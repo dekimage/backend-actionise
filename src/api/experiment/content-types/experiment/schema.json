@@ -1,0 +1,38 @@
+{
+  "kind": "collectionType",
+  "collectionName": "experiments",
+  "info": {
+    "singularName": "experiment",
+    "pluralName": "experiments",
+    "displayName": "Experiment"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "content": {
+      "type": "richtext"
+    },
+    "source": {
+      "type": "string"
+    },
+    "sortOrder": {
+      "type": "integer",
+      "default": 1
+    },
+    "isOpen": {
+      "type": "boolean",
+      "default": true
+    },
+    "card": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::card.card",
+      "inversedBy": "experiments"
+    }
+  }
+}

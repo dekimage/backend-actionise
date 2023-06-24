@@ -1,0 +1,32 @@
+{
+  "kind": "collectionType",
+  "collectionName": "tips",
+  "info": {
+    "singularName": "tip",
+    "pluralName": "tips",
+    "displayName": "Tip"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "content": {
+      "type": "richtext"
+    },
+    "sortOrder": {
+      "type": "integer",
+      "default": 1
+    },
+    "isOpen": {
+      "type": "boolean",
+      "default": true
+    },
+    "card": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::card.card",
+      "inversedBy": "tips"
+    }
+  }
+}

@@ -2,6 +2,11 @@ module.exports = {
   routes: [
     {
       method: "PUT",
+      path: "/usercard/update-content-type",
+      handler: "usercard.updateContentType",
+    },
+    {
+      method: "PUT",
       path: "/usercard/update-settings",
       handler: "usercard.updateSettings",
     },
@@ -37,32 +42,23 @@ module.exports = {
     },
     {
       method: "PUT",
-      path: "/usercard/update-tutorial/:tutorialStep",
+      path: "/usercard/update-tutorial",
       handler: "usercard.updateTutorial",
     },
     {
       method: "PUT",
-      path: "/usercard/getRandomCard",
+      path: "/usercard/get-random-card",
       handler: "usercard.getRandomCard",
     },
     {
       method: "PUT",
-      path: "/usercard/claim-artifact/:id",
+      path: "/usercard/claim-artifact",
       handler: "usercard.claimArtifact",
     },
+
     {
       method: "PUT",
-      path: "/usercard/buyCardTicket/:id",
-      handler: "usercard.buyCardTicket",
-    },
-    {
-      method: "PUT",
-      path: "/usercard/skip-action",
-      handler: "usercard.skipAction",
-    },
-    {
-      method: "PUT",
-      path: "/usercard/save-avatar/:id",
+      path: "/usercard/save-avatar",
       handler: "usercard.saveAvatar",
     },
     {
@@ -72,43 +68,43 @@ module.exports = {
     },
     {
       method: "PUT",
-      path: "/usercard/collect-level-reward/:id",
+      path: "/usercard/collect-level-reward",
       handler: "usercard.collectLevelReward",
     },
     {
       method: "PUT",
-      path: "/usercard/collect-streak-reward/:id",
+      path: "/usercard/collect-streak-reward",
       handler: "usercard.collectStreakReward",
     },
     {
       method: "PUT",
-      path: "/usercard/collect-friends-reward/:id",
+      path: "/usercard/collect-friends-reward",
       handler: "usercard.collectFriendsReward",
     },
     {
       method: "PUT",
-      path: "/usercard/update-card/:id",
+      path: "/usercard/update-card",
       handler: "usercard.updateCard",
     },
     {
       method: "PUT",
-      path: "/usercard/purchase-product/:id",
+      path: "/usercard/purchase-product",
       handler: "usercard.purchaseProduct",
     },
     {
       method: "PUT",
-      path: "/usercard/collect-objective-reward/:id",
+      path: "/usercard/claim-objective",
       handler: "usercard.claimObjective",
     },
 
     {
       method: "PUT",
-      path: "/usercard/cancel-subscription/:id",
+      path: "/usercard/cancel-subscription",
       handler: "usercard.cancelSubscription",
     },
     {
       method: "PUT",
-      path: "/usercard/follow-buddy/:id",
+      path: "/usercard/follow-buddy",
       handler: "usercard.followBuddy",
     },
   ],

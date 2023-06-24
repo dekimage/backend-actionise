@@ -280,6 +280,67 @@
     },
     "email_preferences": {
       "type": "json"
+    },
+    "unlocked_cards": {
+      "type": "json"
+    },
+    "savedCasestudies": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::casestudy.casestudy"
+    },
+    "savedExercises": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::exercise.exercise"
+    },
+    "savedExperiments": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::experiment.experiment"
+    },
+    "savedExpertopinions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::expertopinion.expertopinion"
+    },
+    "savedFaq": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::faq.faq"
+    },
+    "savedIdeas": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::idea.idea"
+    },
+    "savedMetaphors": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::metaphore.metaphore"
+    },
+    "savedQestions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::question.question"
+    },
+    "savedQuotes": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::quote.quote"
+    },
+    "savedStories": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::story.story"
+    },
+    "savedTips": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::tip.tip"
+    },
+    "droppedContent": {
+      "type": "json"
     }
   }
 }

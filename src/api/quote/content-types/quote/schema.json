@@ -1,0 +1,36 @@
+{
+  "kind": "collectionType",
+  "collectionName": "quotes",
+  "info": {
+    "singularName": "quote",
+    "pluralName": "quotes",
+    "displayName": "Quote",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "content": {
+      "type": "string"
+    },
+    "author": {
+      "type": "string"
+    },
+    "card": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::card.card",
+      "inversedBy": "quotes"
+    },
+    "sortOrder": {
+      "type": "integer",
+      "default": 1
+    },
+    "isOpen": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

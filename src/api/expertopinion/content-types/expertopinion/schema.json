@@ -1,0 +1,35 @@
+{
+  "kind": "collectionType",
+  "collectionName": "expertopinions",
+  "info": {
+    "singularName": "expertopinion",
+    "pluralName": "expertopinions",
+    "displayName": "Expertopinion"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "content": {
+      "type": "richtext"
+    },
+    "author": {
+      "type": "string"
+    },
+    "sortOrder": {
+      "type": "integer",
+      "default": 1
+    },
+    "isOpen": {
+      "type": "boolean",
+      "default": true
+    },
+    "card": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::card.card",
+      "inversedBy": "expertopinions"
+    }
+  }
+}

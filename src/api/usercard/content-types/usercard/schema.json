@@ -58,40 +58,6 @@
       "type": "integer",
       "default": 0
     },
-    "completed_actions": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::action.action"
-    },
-    "community_actions_claimed": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::communityaction.communityaction",
-      "mappedBy": "claimed_by"
-    },
-    "community_actions_completed": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::communityaction.communityaction"
-    },
-    "my_community_actions": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::communityaction.communityaction",
-      "mappedBy": "by"
-    },
-    "reported_actions": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::communityaction.communityaction",
-      "mappedBy": "reported_by"
-    },
-    "upvoted_actions": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::communityaction.communityaction",
-      "mappedBy": "voted_by"
-    },
     "league": {
       "type": "enumeration",
       "enum": [
@@ -126,6 +92,12 @@
     },
     "isRated": {
       "type": "boolean"
+    },
+    "progressMap": {
+      "type": "json"
+    },
+    "progressQuest": {
+      "type": "json"
     }
   }
 }

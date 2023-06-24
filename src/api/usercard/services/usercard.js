@@ -101,6 +101,37 @@ const sanitizeUser = (user) => {
   return user;
 };
 
+function singularize(word) {
+  switch (word) {
+    case "ideas":
+      return "idea";
+    case "actions":
+      return "exercise";
+    case "stories":
+      return "story";
+    case "faq":
+      return "faq"; // this is already singular
+    case "program":
+      return "program"; // this is already singular
+    case "casestudy":
+      return "casestudy"; // this is already singular
+    case "tips":
+      return "tip";
+    case "metaphors":
+      return "metaphore";
+    case "experiments":
+      return "experiment";
+    case "expertOpinions":
+      return "expertopinion";
+    case "quotes":
+      return "quote";
+    case "questions":
+      return "question";
+    default:
+      return false;
+  }
+}
+
 const updateUser = async (
   id,
   payload,
@@ -169,6 +200,42 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
       ),
     });
   },
+  gainContentQuestRewards: async (user, params) => {
+    let payload = {};
+
+    const xpGained = 50;
+    const xpLimit = getXpLimit(user.level);
+
+    if (user.xp + xpGained >= xpLimit) {
+      payload = {
+        xp: user.xp + xpGained - xpLimit,
+        level: user.level + 1,
+        xpLimit: getXpLimit(user.level + 1),
+      };
+    } else {
+      payload = {
+        xp: user.xp + xpGained,
+      };
+    }
+
+    const starsGained = 25;
+    payload = {
+      ...payload,
+      stars: user.stars + starsGained,
+    };
+
+    return {
+      xp: payload.xp,
+      xpGained: xpGained,
+      level: payload.level,
+      xpLimit: getXpLimit(payload.level),
+      stars: starsGained,
+      isLevelnew: user.xp + xpGained >= xpLimit,
+      artifact: artifactData.artifact,
+    };
+
+    // NOT FINISHED
+  },
   gainObjectiveRewards: async (user, objective) => {
     let payload = {};
     let artifactData = false;
@@ -219,7 +286,8 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
       starsGained = randomStars;
 
       //3.2. gain artifact maybe 16.6% chance
-      const chanceToGainArtifact = 0.166;
+      // const chanceToGainArtifact = 0.166;
+      const chanceToGainArtifact = 0.99;
       const randomInt = Math.random();
       const shouldGainArtifact = randomInt <= chanceToGainArtifact;
       // const shouldGainArtifact = true;
@@ -245,9 +313,6 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
       isLevelnew: user.xp + xpGained >= xpLimit,
       artifact: artifactData.artifact,
     };
-
-    //2. Objective reward (stars/lootbox/...?)
-    //3. if lootbox - add stars + artifact %
   },
   gainReward: async (user, rewardType, quantity) => {
     const payload = {
@@ -772,5 +837,89 @@ module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
     return {
       card: cardId,
     };
+  },
+  getRandomUndroppedContent: async (user) => {
+    // dropabble content types
+    const contentTypes = [
+      "ideas",
+      "actions", //   "exercises",
+      "stories",
+      "tips",
+      "faq",
+      "quotes",
+      "casestudy",
+      "metaphors",
+      "expertOpinions",
+      "questions",
+      "experiments",
+    ];
+
+    const cardIds = user.unlocked_cards?.ids || [];
+
+    while (contentTypes.length > 0) {
+      const randomIndex = Math.floor(Math.random() * contentTypes.length);
+      const randomContentType = contentTypes[randomIndex];
+      contentTypes.splice(randomIndex, 1);
+
+      const formattedContentType = singularize(randomContentType);
+
+      const undroppedContent = await strapi.db
+        .query(`api::${formattedContentType}.${formattedContentType}`)
+        .findMany({
+          where: {
+            $and: [
+              {
+                isOpen: false,
+              },
+              {
+                $or: [
+                  {
+                    card: {
+                      id: { $in: cardIds },
+                    },
+                  },
+                  {
+                    card: {
+                      is_open: true,
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          // populate: { card: true },
+        });
+
+      if (undroppedContent.length > 0) {
+        const undroppedContentIds = undroppedContent.map(
+          (content) => content.id
+        );
+
+        const userDroppedContent =
+          user.droppedContent?.[randomContentType] || [];
+        const undroppedContentIdsFiltered = undroppedContentIds.filter(
+          (id) => !userDroppedContent.includes(parseInt(id))
+        );
+
+        if (undroppedContentIdsFiltered.length > 0) {
+          const randomUndroppedContentIndex = Math.floor(
+            Math.random() * undroppedContentIdsFiltered.length
+          );
+          const randomUndroppedContentId =
+            undroppedContentIdsFiltered[randomUndroppedContentIndex];
+
+          const randomUndroppedContent = undroppedContent.find(
+            (content) => content.id === randomUndroppedContentId
+          );
+
+          return {
+            reward: randomUndroppedContent,
+            rewardType: randomContentType,
+          };
+        }
+      }
+    }
+
+    return { error: true };
   },
 }));

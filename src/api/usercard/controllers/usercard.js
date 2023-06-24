@@ -4,6 +4,51 @@ const path = require("path");
 const { createCoreController } = require("@strapi/strapi").factories;
 const { createToken } = require("../../../../utils/functions");
 const bcrypt = require("bcryptjs");
+// @CALC
+const maxProgressPerContentType = {
+  ideas: 3,
+  actions: 5,
+  stories: 1,
+  faq: 2,
+  program: 3,
+  casestudy: 1,
+  tips: 3,
+  metaphors: 3,
+  experiments: 2,
+  expertOpinions: 3,
+  quotes: 5,
+  questions: 3,
+};
+function singularize(word) {
+  switch (word) {
+    case "ideas":
+      return "idea";
+    case "actions":
+      return "exercise";
+    case "stories":
+      return "story";
+    case "faq":
+      return "faq"; // this is already singular
+    case "program":
+      return "program"; // this is already singular
+    case "casestudy":
+      return "casestudy"; // this is already singular
+    case "tips":
+      return "tip";
+    case "metaphors":
+      return "metaphore";
+    case "experiments":
+      return "experiment";
+    case "expertOpinions":
+      return "expertopinion";
+    case "quotes":
+      return "quote";
+    case "questions":
+      return "question";
+    default:
+      return false;
+  }
+}
 const sanitizeUser = (user) => {
   delete user["provider"];
   delete user["password"];
@@ -56,9 +101,311 @@ const updateUser = async (id, payload, populate = {}) => {
 
   return sanitizeUser(user);
 };
+const getOrCreateUserCard = async (ctx, userId, card) => {
+  const checkUserCardRelation = await strapi.db
+    .query("api::usercard.usercard")
+    .findOne({ where: { user: userId, card: card.id } });
+  if (!checkUserCardRelation && card.is_open) {
+    const newUserCardRelation = await strapi.db
+      .query("api::usercard.usercard")
+      .create({
+        data: {
+          user: userId,
+          card: card.id,
+          completed: 0,
+          is_unlocked: true,
+          is_new: true,
+          completed_contents: [],
+          progressMap: {},
+          progressQuest: {},
+        },
+      });
+    return newUserCardRelation;
+  }
+  if (!checkUserCardRelation && !card.is_open) {
+    ctx.throw(403, "You have not unlocked this card yet");
+  }
+  return checkUserCardRelation;
+};
 module.exports = createCoreController(
   "api::usercard.usercard",
   ({ strapi }) => ({
+    async updateContentType(ctx) {
+      const { action, contentType, contentTypeId, cardId } = ctx.request.body;
+
+      console.log(action, contentType, contentTypeId, cardId);
+
+      const propertyName = `saved${contentType
+        .charAt(0)
+        .toUpperCase()}${contentType.slice(1)}`;
+
+      const user = await getUser(ctx.state.user.id, {
+        [propertyName]: true,
+        last_completed_cards: true,
+      });
+
+      console.log(user.username);
+
+      const contentTypeIdParsed = parseInt(contentTypeId);
+
+      const isValidContentType = (contentType) =>
+        contentType in maxProgressPerContentType ? true : false;
+
+      if (!isValidContentType(contentType)) {
+        ctx.throw(400, "Invalid content type");
+      }
+
+      const formattedContentType = singularize(contentType);
+      const contentTypeData =
+        action == "claim"
+          ? { isOpen: true }
+          : await strapi.db
+              .query(`api::${formattedContentType}.${formattedContentType}`)
+              .findOne({
+                where: { id: contentTypeId },
+              });
+
+      const card = await strapi.db.query("api::card.card").findOne({
+        where: {
+          id: cardId,
+        },
+      });
+
+      let userCard = await getOrCreateUserCard(ctx, ctx.state.user.id, card);
+
+      let progressMap = userCard?.progressMap || {};
+
+      if (!progressMap[contentType]) {
+        progressMap[contentType] = {};
+      }
+
+      if (!progressMap[contentType][contentTypeId]) {
+        if (contentTypeData.isOpen) {
+          progressMap[contentType][contentTypeId] = {
+            completed: 0,
+            saved: false,
+          };
+        } else {
+          return ctx.throw(403, "You haven't unlocked this content yet.");
+        }
+      }
+
+      if (action == "save") {
+        // BOOKMARK IN RELATION IN USER
+        let newSavedContent = user[propertyName] || [];
+
+        const alreadySaved =
+          newSavedContent.length > 0 &&
+          newSavedContent.filter((c) => c.id == contentTypeIdParsed).length > 0;
+
+        if (alreadySaved) {
+          newSavedContent = newSavedContent.filter(
+            (c) => c.id != contentTypeIdParsed
+          );
+        } else {
+          newSavedContent.push(contentTypeIdParsed);
+        }
+
+        const userUpdate = {
+          [propertyName]: newSavedContent,
+        };
+
+        const userData = updateUser(user.id, userUpdate);
+
+        // BOOKMARK IN PROGRESSMAP IN USERCARD
+
+        progressMap[contentType][contentTypeId] = {
+          ...progressMap[contentType][contentTypeId],
+          saved: !progressMap[contentType][contentTypeId].saved,
+        };
+
+        // SAVE USERCARD - PROGRESSMAP
+
+        await strapi.db.query("api::usercard.usercard").update({
+          where: { id: userCard.id },
+          data: {
+            progressMap,
+          },
+        });
+
+        return userData;
+      }
+
+      if (action == "complete") {
+        // check 24 hours
+        // const oneDay = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        // if (
+        //   Date.now() -
+        //     userCard.progressMap[contentType][contentTypeId].lastTime <
+        //   oneDay
+        // ) {
+        //   return ctx.throw(
+        //     400,
+        //     "You need to wait 24 hours before updating progress again."
+        //   );
+        // }
+
+        // check energy
+        if (user.energy < 1) {
+          return ctx.throw(400, "You don't have enough energy.");
+        }
+
+        // LAST COMPLETED UPDATE + energy reduce
+        let new_last_completed = user.last_completed_cards;
+        new_last_completed.push(cardId);
+        if (new_last_completed.length > 10) {
+          new_last_completed.shift();
+        }
+        const payload = {
+          last_completed_cards: new_last_completed,
+          energy: user.energy - 1,
+        };
+        await updateUser(user.id, payload);
+
+        if (
+          progressMap[contentType][contentTypeId].completed <
+          maxProgressPerContentType[contentType]
+        ) {
+          progressMap[contentType][contentTypeId] = {
+            completed: progressMap[contentType][contentTypeId].completed + 1,
+            lastTime: Date.now(),
+          };
+        } else {
+          ctx.throw(400, "You have already completed this content type.");
+        }
+
+        // update the PROGRESSQUEST
+
+        // Initialize progressQuest if it's not defined
+        // let progressQuest = userCard.progressQuest ?? {};
+        let progressQuest =
+          userCard.progressQuest == null ? {} : userCard.progressQuest;
+        progressQuest[contentType] = progressQuest[contentType] ?? {
+          level: 1,
+          progress: 0,
+          claimsAvailable: 0,
+        };
+
+        // Check if progress is already at the maximum for this contentType
+        if (
+          progressQuest[contentType].progress >=
+          maxProgressPerContentType[contentType]
+        ) {
+          // If progress is at maximum, reset progress to 1 and increment level
+          progressQuest[contentType].progress = 1;
+          progressQuest[contentType].level++;
+        } else {
+          // If progress is not at maximum, increment progress
+          progressQuest[contentType].progress++;
+        }
+
+        userCard = await strapi.db.query("api::usercard.usercard").update({
+          where: { id: userCard.id },
+          data: {
+            progressMap,
+            progressQuest,
+          },
+        });
+
+        await strapi
+          .service("api::usercard.usercard")
+          .objectivesTrigger(user, "energy");
+
+        // ACHIEVEMENTS UPDATE??
+
+        ctx.send(userCard);
+      }
+
+      if (action == "claim") {
+        let progressQuest = userCard.progressQuest;
+
+        if (!progressQuest) {
+          return ctx.throw(400, "You have not completed any content yet.");
+        }
+        if (progressQuest[contentType].claimsAvailable < 1) {
+          return ctx.throw(400, "You have already claimed this quest.");
+        }
+        // claim quest
+        progressQuest[contentType].claimsAvailable--;
+
+        // ROLL RANDOM CONTENT TYPE
+        const randomReward = await strapi
+          .service("api::usercard.usercard")
+          .getRandomUndroppedContent(user);
+
+        const { reward, rewardType, error } = randomReward;
+        if (error) {
+          ctx.throw(400, "No rewards available.");
+        }
+
+        const formattedContentType = singularize(rewardType);
+
+        const cardFromReward = await strapi.entityService.findOne(
+          `api::${formattedContentType}.${formattedContentType}`,
+          reward.id,
+          {
+            fields: ["id"],
+            populate: { card: true },
+          }
+        );
+
+        const usercardFromReward = await getOrCreateUserCard(
+          ctx,
+          ctx.state.user.id,
+          cardFromReward.card
+        );
+
+        // UPDATE PROGRESSMAP IN USERCARD WHERE REWARD DROPPED ->
+        let progressMapFromReward = usercardFromReward.progressMap || {};
+
+        if (!progressMapFromReward[rewardType]) {
+          progressMapFromReward[rewardType] = {};
+        }
+
+        progressMapFromReward[rewardType][reward.id] = {
+          completed: 0,
+          saved: false,
+        };
+
+        strapi.entityService.update(
+          "api::usercard.usercard",
+          usercardFromReward.id,
+          {
+            data: {
+              progressMap: progressMapFromReward,
+            },
+          }
+        );
+
+        // UPDATE DROPPEDCONTENT JSON IN USER ->
+        const droppedContent = user.droppedContent || {};
+
+        const userUpdate = {
+          stars: user.energy + 50,
+          xp: user.xp + 100,
+
+          droppedContent: {
+            ...droppedContent,
+            [rewardType]: droppedContent[rewardType]
+              ? [...droppedContent[rewardType], reward.id]
+              : [reward.id],
+          },
+        };
+
+        const userData = updateUser(user.id, userUpdate);
+
+        // UPDATE THE PROGRESS QUEST IN THE ORIGINAL USERCARD ->
+        userCard = await strapi.db.query("api::usercard.usercard").update({
+          where: { id: userCard.id },
+          data: {
+            progressQuest,
+          },
+        });
+
+        return reward;
+      }
+    },
+
     async updateSettings(ctx) {
       const user = await getUser(ctx.state.user.id);
       const { settings } = ctx.request.body;
@@ -72,6 +419,7 @@ module.exports = createCoreController(
       console.log(data);
       return data;
     },
+
     async updateUserBasicInfo(ctx) {
       const user = await getUser(ctx.state.user.id);
       const { value, inputName } = ctx.request.body;
@@ -91,6 +439,7 @@ module.exports = createCoreController(
       const data = updateUser(user.id, payload);
       return data;
     },
+
     async resetUser(ctx) {
       const user = ctx.state.user;
       let payload = {
@@ -111,6 +460,7 @@ module.exports = createCoreController(
       const data = updateUser(user.id, payload);
       return data;
     },
+
     async notifyMe(ctx) {
       const user = await getUser(ctx.state.user.id);
       const isNotifyMe = ctx.request.body.isNotifyMe;
@@ -124,6 +474,7 @@ module.exports = createCoreController(
       await updateUser(user.id, upload);
       return { success: true };
     },
+
     async rateCard(ctx) {
       const availableRatings = [1, 2, 3, 4, 5, 6, 7, 8];
       const user = await getUser(ctx.state.user.id);
@@ -175,6 +526,7 @@ module.exports = createCoreController(
 
       return { usercard: usercardUpdated, hasRated };
     },
+
     async acceptReferral(ctx) {
       const user = await getUser(ctx.state.user.id, { shared_by: true });
       // update self
@@ -202,6 +554,7 @@ module.exports = createCoreController(
       await updateUser(sharedUserId, sharedUpload);
       return { success: true };
     },
+
     async sendFeatureMail(ctx) {
       const { details, subject } = ctx.request.body;
 
@@ -238,6 +591,7 @@ module.exports = createCoreController(
         message: "Feature suggestion or bug report submitted successfully.",
       };
     },
+
     async me(ctx) {
       const user = ctx.state.user;
 
@@ -254,6 +608,7 @@ module.exports = createCoreController(
       const cards_count = await strapi.db
         .query("api::card.card")
         .count({ is_open: false });
+
       const levelRewards = await strapi.db
         .query("api::levelreward.levelreward")
         .findMany({
@@ -348,6 +703,7 @@ module.exports = createCoreController(
       };
       return userDataModified;
     },
+
     async skipAction(ctx) {
       const { user } = ctx.state;
       return { success: true };
@@ -369,6 +725,7 @@ module.exports = createCoreController(
       await updateUser(user.id, upload);
       return { success: true };
     },
+
     async buyCardTicket(ctx) {
       const user = await getUser(ctx.state.user.id, {
         card_tickets: true,
@@ -443,6 +800,7 @@ module.exports = createCoreController(
       });
       return data;
     },
+
     async getRandomCard(ctx) {
       // 1. get all cards
       function extractCardsIds(usercards) {
@@ -490,6 +848,7 @@ module.exports = createCoreController(
       // 2. filter by user has it unlocked.
       // 3. return random card.
     },
+
     async updateCard(ctx) {
       const user = await getUser(ctx.state.user.id, {
         last_completed_cards: true,
@@ -500,7 +859,7 @@ module.exports = createCoreController(
         artifacts: true,
       });
 
-      const card_id = parseInt(ctx.params.id);
+      const card_id = parseInt(ctx.request.body.id);
       const action = ctx.request.body.action;
       const contentIndex = ctx.request.body.contentIndex || 0;
 
@@ -525,9 +884,12 @@ module.exports = createCoreController(
       // updatedUserCardRelation.users_permissions_user.id;
       return updatedUserCardRelation;
     },
+
     async updateTutorial(ctx) {
       const user = await getUser(ctx.state.user.id);
-      const tutorialStep = ctx.params.tutorialStep;
+
+      const tutorialStep = ctx.request.body.tutorialStep;
+
       if (!tutorialStep || tutorialStep < 0 || tutorialStep > 10) {
         return ctx.badRequest("Invalid Tutorial Step");
       }
@@ -538,13 +900,14 @@ module.exports = createCoreController(
       const data = await updateUser(user.id, upload);
       return data.tutorial_step;
     },
+
     async collectStreakReward(ctx) {
       const user = await getUser(ctx.state.user.id, {
         shared_buddies: true,
         artifacts: true,
       });
 
-      const streakCount = ctx.params.id;
+      const streakCount = ctx.request.body.id;
 
       const streakReward = await strapi.db
         .query("api::streakreward.streakreward")
@@ -632,13 +995,14 @@ module.exports = createCoreController(
         };
       }
     },
+
     async collectFriendsReward(ctx) {
       // static data
       const user = await getUser(ctx.state.user.id, {
         artifacts: true,
       });
 
-      const friendsCount = ctx.params.id;
+      const friendsCount = ctx.request.body.id;
 
       const friendsReward = await strapi.db
         .query("api::friendreward.friendreward")
@@ -715,6 +1079,7 @@ module.exports = createCoreController(
         },
       };
     },
+
     async collectLevelReward(ctx) {
       // static data
       const user = await getUser(ctx.state.user.id, {
@@ -722,7 +1087,7 @@ module.exports = createCoreController(
         levelrewards: true,
       });
 
-      const levelId = ctx.params.id;
+      const levelId = ctx.request.body.id;
 
       const levelReward = await strapi.db
         .query("api::levelreward.levelreward")
@@ -794,8 +1159,9 @@ module.exports = createCoreController(
         },
       };
     },
+
     async claimArtifact(ctx) {
-      const artifactId = ctx.params.id;
+      const artifactId = ctx.request.body.artifactId;
       const user = await getUser(ctx.state.user.id, {
         artifacts: true,
         claimed_artifacts: true,
@@ -833,8 +1199,10 @@ module.exports = createCoreController(
       const data = updateUser(user.id, upload, { claimed_artifacts: true });
       return data;
     },
+
     async claimObjective(ctx) {
-      const objectiveId = ctx.params.id;
+      const objectiveId = ctx.request.body.objectiveId;
+
       const user = await getUser(ctx.state.user.id, { artifacts: true });
       const user_objectives = user.objectives_json || {};
 
@@ -913,6 +1281,7 @@ module.exports = createCoreController(
         artifactTrigger: artifactData,
       };
     },
+
     async purchaseProduct(ctx) {
       const user = await getUser(ctx.state.user.id, {
         orders: {
@@ -922,7 +1291,7 @@ module.exports = createCoreController(
         },
       });
 
-      const productId = ctx.params.id;
+      const productId = ctx.request.body.id;
 
       // const payment_env = ctx.request.body.payment_env;
       const payment_env = "apple";
@@ -1045,10 +1414,11 @@ module.exports = createCoreController(
         return newOrder;
       }
     },
+
     async followBuddy(ctx) {
       const user = await getUser(ctx.state.user.id, { followers: true });
 
-      const buddyId = parseInt(ctx.params.id);
+      const buddyId = parseInt(ctx.request.body.id);
 
       const buddy = await getUser(buddyId);
 
@@ -1078,6 +1448,7 @@ module.exports = createCoreController(
       });
       return sanitizedData;
     },
+
     async cancelSubscription(ctx) {
       const user = await getUser(ctx.state.user.id);
 
@@ -1094,9 +1465,10 @@ module.exports = createCoreController(
       const data = await updateUser(user.id, upload);
       return data.is_unsubscribed;
     },
+
     async saveAvatar(ctx) {
       const user = await getUser(ctx.state.user.id);
-      const avatarId = parseInt(ctx.params.id);
+      const avatarId = ctx.request.body.avatarId;
 
       const avatar = await strapi.db.query("api::avatar.avatar").findOne({
         where: {

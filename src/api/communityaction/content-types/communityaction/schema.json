@@ -50,30 +50,6 @@
       "target": "api::card.card",
       "inversedBy": "communityactions"
     },
-    "claimed_by": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::usercard.usercard",
-      "inversedBy": "community_actions_claimed"
-    },
-    "voted_by": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::usercard.usercard",
-      "inversedBy": "upvoted_actions"
-    },
-    "by": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::usercard.usercard",
-      "inversedBy": "my_community_actions"
-    },
-    "reported_by": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::usercard.usercard",
-      "inversedBy": "reported_actions"
-    },
     "steps": {
       "type": "component",
       "repeatable": true,

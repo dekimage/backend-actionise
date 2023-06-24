@@ -53,7 +53,8 @@
         "action",
         "master_card",
         "daily",
-        "weekly"
+        "weekly",
+        "energy"
       ]
     },
     "is_premium": {
