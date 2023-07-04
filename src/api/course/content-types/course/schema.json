@@ -76,12 +76,6 @@
     "full_price": {
       "type": "decimal"
     },
-    "reviews": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::review.review",
-      "mappedBy": "course"
-    },
     "last_updated": {
       "type": "date"
     },
