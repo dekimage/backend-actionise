@@ -20,11 +20,7 @@ module.exports = {
       path: "/usercard/update-user-basic-info",
       handler: "usercard.updateUserBasicInfo",
     },
-    {
-      method: "PUT",
-      path: "/usercard/reset-user",
-      handler: "usercard.resetUser",
-    },
+
     {
       method: "PUT",
       path: "/usercard/notify-me",
