@@ -1,10 +1,9 @@
 "use strict";
-const fs = require("fs");
-const path = require("path");
 const { createCoreController } = require("@strapi/strapi").factories;
-const { createToken } = require("../../../../utils/functions");
-const bcrypt = require("bcryptjs");
-// @CALC
+const API_PATH = "api::usercard.usercard";
+
+// @CEREBRO
+const STARS_REWARD_FROM_BUDDY_REWARD = 400;
 const maxProgressPerContentType = {
   ideas: 3,
   actions: 5,
@@ -19,6 +18,7 @@ const maxProgressPerContentType = {
   quotes: 5,
   questions: 3,
 };
+
 function singularize(word) {
   switch (word) {
     case "ideas":
@@ -72,54 +72,54 @@ const formatDate = (date) => {
   ].join("-");
 };
 const getUserCard = async (userId, cardId) => {
-  const userCardRelation = await strapi
-    .query("api::usercard.usercard")
+  const usercard = await strapi
+    .query(API_PATH)
     .findOne({ where: { user: userId, card: cardId } });
-  return userCardRelation;
+  return usercard;
 };
 const getUser = async (id, populate = {}) => {
-  const defaultPopulate = {
-    usercards: true,
-    orders: true,
-  };
+  // const defaultPopulate = {
+  //   usercards: true,
+  //   orders: true,
+  // };
   const entry = await strapi.db
     .query("plugin::users-permissions.user")
     .findOne({
       // select: ['title', 'description'],
       where: { id: id },
-      populate: { ...defaultPopulate, ...populate },
+      populate: { ...populate },
     });
   return sanitizeUser(entry);
 };
 const updateUser = async (id, payload, populate = {}) => {
-  const defaultPopulate = { usercards: true, orders: true };
+  // const defaultPopulate = { usercards: true, orders: true };
   const user = await strapi.db.query("plugin::users-permissions.user").update({
     where: { id: id },
     data: payload,
-    populate: { ...defaultPopulate, ...populate },
+    // populate: { ...defaultPopulate, ...populate },
+    populate: { ...populate },
   });
 
   return sanitizeUser(user);
 };
-const getOrCreateUserCard = async (ctx, userId, card) => {
+const getOrCreateUserCard = async (ctx, card) => {
+  const userId = ctx.state.user.id;
   const checkUserCardRelation = await strapi.db
-    .query("api::usercard.usercard")
+    .query(API_PATH)
     .findOne({ where: { user: userId, card: card.id } });
   if (!checkUserCardRelation && card.is_open) {
-    const newUserCardRelation = await strapi.db
-      .query("api::usercard.usercard")
-      .create({
-        data: {
-          user: userId,
-          card: card.id,
-          completed: 0,
-          is_unlocked: true,
-          is_new: true,
-          completed_contents: [],
-          progressMap: {},
-          progressQuest: {},
-        },
-      });
+    const newUserCardRelation = await strapi.db.query(API_PATH).create({
+      data: {
+        user: userId,
+        card: card.id,
+        completed: 0,
+        is_unlocked: true,
+        is_new: true,
+        completed_contents: [],
+        progressMap: {},
+        progressQuest: {},
+      },
+    });
     return newUserCardRelation;
   }
   if (!checkUserCardRelation && !card.is_open) {
