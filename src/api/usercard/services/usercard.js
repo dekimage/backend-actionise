@@ -1,8 +1,8 @@
 "use strict";
 
-const API_PATH = "api::usercard.usercard";
-
 const { createCoreService } = require("@strapi/strapi").factories;
+
+const API_PATH = "api::usercard.usercard";
 
 const addIntegerInArray = (array, integer) => {
   if (array.includes(integer)) {
