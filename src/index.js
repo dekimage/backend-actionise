@@ -74,18 +74,7 @@ module.exports = {
               },
             },
           });
-        // await strapi.db.query("api::usercard.usercard").create({
-        //   data: {
-        //     user: user.id,
-        //     card: 2,
-        //     quantity: 1,
-        //     completed: 0,
-        //     glory_points: 0,
-        //     is_unlocked: true,
-        //     is_new: false,
-        //     user_name: user.username,
-        //   },
-        // });
+
         await strapi.service("api::usercard.usercard").sendEmailTemplate();
         return user;
       },

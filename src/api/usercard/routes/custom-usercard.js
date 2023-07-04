@@ -7,8 +7,8 @@ module.exports = {
     },
     {
       method: "PUT",
-      path: "/usercard/update-settings",
-      handler: "usercard.updateSettings",
+      path: "/usercard/update-email-settings",
+      handler: "usercard.updateEmailSettings",
     },
     {
       method: "PUT",

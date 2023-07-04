@@ -23,14 +23,6 @@
       "relation": "oneToOne",
       "target": "api::card.card"
     },
-    "user_name": {
-      "type": "string",
-      "private": true
-    },
-    "level": {
-      "type": "integer",
-      "default": 1
-    },
     "quantity": {
       "default": 1,
       "type": "integer"
@@ -54,23 +46,6 @@
       "type": "boolean",
       "default": false
     },
-    "glory_points": {
-      "type": "integer",
-      "default": 0
-    },
-    "league": {
-      "type": "enumeration",
-      "enum": [
-        "unranked",
-        "bronze",
-        "silver",
-        "gold",
-        "platinum",
-        "diamond",
-        "grandmaster"
-      ],
-      "default": "unranked"
-    },
     "completed_progress_max": {
       "type": "integer",
       "default": 4
@@ -81,11 +56,6 @@
     "rating": {
       "type": "integer",
       "default": 0
-    },
-    "card_name": {
-      "type": "string",
-      "private": true,
-      "default": "null"
     },
     "message": {
       "type": "text"
