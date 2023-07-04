@@ -131,62 +131,7 @@ module.exports = createCoreController(
   "api::usercard.usercard",
   ({ strapi }) => ({
     // DEV TOOLBOX
-    async resetUser(ctx) {
-      const user = ctx.state.user;
-      let payload = {
-        level: 1,
-        xp: 0,
-        stars: 10000,
-        energy: 1000,
-        streak: 100,
-        highest_buddy_shares: 10,
-        is_notify_me: false,
-        objectives_json: {
-          1: { progress: 15, isCollected: false },
-          2: { progress: 15, isCollected: false },
-          3: { progress: 15, isCollected: false },
-          4: { progress: 15, isCollected: false },
-          5: { progress: 15, isCollected: false },
-          6: { progress: 15, isCollected: false },
-          7: { progress: 15, isCollected: false },
-          8: { progress: 15, isCollected: false },
-        },
-        stats: {
-          mastery: 0,
-          card_unlock: 0,
-          cards_complete: 0,
-          action_complete: 0,
-          claimed_artifacts: 0,
-          daily_objectives_complete: 0,
-          weekly_objectives_complete: 0,
-        },
-        droppedContent: {},
-        unlocked_cards: {},
-        avatar: 1,
-        artifacts: [],
-        claimed_artifacts: [],
-        favorite_cards: [],
-        tutorial_step: 0,
-        shared_by: [],
-        shared_buddies: [],
-        last_unlocked_cards: [],
-        last_completed_cards: [],
-        streak_rewards: {},
-        friends_rewards: {},
-        rewards_tower: {},
-      };
-      const data = updateUser(user.id, payload);
-      //delete all usercards WARNING!!!
-      // WORKAROUND FOR STRAPI QUERY FIRST (find all) THEN DELETE (delete many) -> https://github.com/strapi/strapi/issues/11998
-      const toDelete = await strapi.db
-        .query("api::usercard.usercard")
-        .findMany({ where: { user: user.id } });
-      await strapi.db
-        .query("api::usercard.usercard")
-        .deleteMany({ where: { id: { $in: toDelete.map(({ id }) => id) } } });
 
-      return data;
-    },
     async updateContentType(ctx) {
       const { action, contentType, contentTypeId, cardId } = ctx.request.body;
 
