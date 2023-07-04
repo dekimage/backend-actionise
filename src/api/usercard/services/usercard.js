@@ -2,6 +2,8 @@
 
 const { createCoreService } = require("@strapi/strapi").factories;
 
+const API_PATH = "api::usercard.usercard";
+
 const addIntegerInArray = (array, integer) => {
   if (array.includes(integer)) {
     return array;
@@ -153,7 +155,7 @@ const getUserCard = async (userId, cardId) => {
   return userCardRelation;
 };
 
-module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
+module.exports = createCoreService(API_PATH, ({ strapi }) => ({
   sendEmailTemplate: async (template) => {
     const defaultTemplate = "welcome-email";
 
