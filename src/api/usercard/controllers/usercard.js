@@ -463,18 +463,45 @@ module.exports = createCoreController(
       }
     },
 
-    async updateSettings(ctx) {
+    // SETTINGS
+    async updateEmailSettings(ctx) {
       const user = await getUser(ctx.state.user.id);
       const { settings } = ctx.request.body;
-      if (!settings) {
-        ctx.throw(400, "invalid input");
+      // Validate the email_preferences object
+      if (typeof email_preferences !== "object" || email_preferences === null) {
+        ctx.throw(400, "Invalid email preferences object");
       }
+
+      const allowedKeys = [
+        "newsletter",
+        "promotions",
+        "content",
+        "updates",
+        "reminders",
+        "unsubscribe",
+      ];
+
+      // Check if the keys in email_preferences are valid
+      for (const key in email_preferences) {
+        if (!allowedKeys.includes(key)) {
+          ctx.throw(400, `Invalid email preferences key: ${key}`);
+        }
+      }
+
+      // Check if the values are booleans
+      for (const key in email_preferences) {
+        if (typeof email_preferences[key] !== "boolean") {
+          ctx.throw(400, `Invalid value for email preference: ${key}`);
+        }
+      }
+
       const payload = {
         email_preferences: settings,
       };
-      const data = updateUser(user.id, payload);
-      console.log(data);
-      return data;
+
+      await updateUser(user.id, payload);
+
+      return { success: true };
     },
 
     async updateUserBasicInfo(ctx) {
