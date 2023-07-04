@@ -1,5 +1,9 @@
 "use strict";
 const { createCoreController } = require("@strapi/strapi").factories;
+const fs = require("fs");
+const path = require("path");
+const { createToken } = require("../../../../utils/functions");
+const bcrypt = require("bcryptjs");
 const API_PATH = "api::usercard.usercard";
 
 // @CEREBRO
