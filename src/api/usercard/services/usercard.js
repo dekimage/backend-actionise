@@ -76,6 +76,7 @@ function getRandomStars() {
 
 function getXpLimit(level) {
   //chatGPT - enhanced
+  // @CEREBRO
   const INCREASE_PER_LEVEL = 3.29;
   const STARTING_XP = 300;
 
@@ -103,6 +104,7 @@ const sanitizeUser = (user) => {
   return user;
 };
 
+// @CEREBRO
 function singularize(word) {
   switch (word) {
     case "ideas":
@@ -134,28 +136,44 @@ function singularize(word) {
   }
 }
 
-const updateUser = async (
-  id,
-  payload,
-  populate = { usercards: true, orders: true }
-) => {
+const updateUser = async (id, payload) => {
   const user = await strapi.db.query("plugin::users-permissions.user").update({
     where: { id: id },
     data: payload,
-    populate: populate,
   });
 
   return sanitizeUser(user);
 };
 
-const getUserCard = async (userId, cardId) => {
-  const userCardRelation = await strapi.db
-    .query("api::usercard.usercard")
-    .findOne({ where: { user: userId, card: cardId } });
-  return userCardRelation;
+const getOrCreateUserCard = async (ctx, card, isForceCreate = false) => {
+  const userId = ctx.state.user.id;
+
+  const checkUserCardRelation = await strapi.db
+    .query(API_PATH)
+    .findOne({ where: { user: userId, card: card.id } });
+
+  if ((!checkUserCardRelation && card.is_open) || isForceCreate) {
+    const newUserCardRelation = await strapi.db.query(API_PATH).create({
+      data: {
+        user: userId,
+        card: card.id,
+        completed: 0,
+        is_unlocked: true,
+        is_new: true,
+        completed_contents: [],
+        progressMap: {},
+        progressQuest: {},
+      },
+    });
+    return newUserCardRelation;
+  }
+  if (!checkUserCardRelation && !card.is_open && !isForceCreate) {
+    ctx.throw(403, "You have not unlocked this card yet");
+  }
+  return checkUserCardRelation;
 };
 
-module.exports = createCoreService(API_PATH, ({ strapi }) => ({
+module.exports = createCoreService("api::usercard.usercard", ({ strapi }) => ({
   sendEmailTemplate: async (template) => {
     const defaultTemplate = "welcome-email";
 
@@ -187,13 +205,13 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
 
     return { success: true };
   },
+
   resetUser: async (user, today, formatDate) => {
     const { resetWeekDate, isWeekRestarted } = calculateWeekReset(user, today);
 
     await updateUser(user.id, {
+      // @CEREBRO
       energy: user.energy <= 3 ? 3 : user.energy,
-      card_tickets: [],
-      action_tickets: [],
       reset_date: formatDate(today),
       reset_week_date: resetWeekDate,
       objectives_json: await resetUserObjectives(
@@ -202,9 +220,10 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
       ),
     });
   },
+
   gainContentQuestRewards: async (user, params) => {
     let payload = {};
-
+    // @CEREBRO
     const xpGained = 50;
     const xpLimit = getXpLimit(user.level);
 
@@ -238,12 +257,14 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
 
     // NOT FINISHED
   },
+
   gainObjectiveRewards: async (user, objective) => {
     let payload = {};
     let artifactData = false;
     let starsGained; // for return to frontend only
 
     //1. XP (daily + 50, weekly + 250)
+    // @CEREBRO
     const xpPerObjective = { daily: 75, weekly: 250 };
     const xpGained = xpPerObjective[objective.time_type];
     const xpLimit = getXpLimit(user.level);
@@ -287,6 +308,7 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
       };
       starsGained = randomStars;
 
+      // @CEREBRO
       //3.2. gain artifact maybe 16.6% chance
       // const chanceToGainArtifact = 0.166;
       const chanceToGainArtifact = 0.99;
@@ -300,22 +322,21 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
           .gainArtifact(user, 0, true);
       }
     }
-
-    // wait
-    const data = await updateUser(user.id, payload);
-
-    //MODALS CAN BE ARRAY -> CONSTRUCTED WAY
+    await updateUser(user.id, payload);
 
     return {
-      xp: payload.xp,
-      xpGained: xpGained,
-      level: payload.level,
-      xpLimit: getXpLimit(payload.level),
+      xp: {
+        xp: payload.xp,
+        xpGained: xpGained,
+        level: payload.level,
+        xpLimit: getXpLimit(payload.level),
+        isLevelnew: user.xp + xpGained >= xpLimit,
+      },
       stars: starsGained,
-      isLevelnew: user.xp + xpGained >= xpLimit,
       artifact: artifactData.artifact,
     };
   },
+
   gainReward: async (user, rewardType, quantity) => {
     const payload = {
       [rewardType]: user[rewardType] + quantity,
@@ -326,6 +347,7 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
       quantity: data[rewardType],
     };
   },
+
   gainArtifact: async (user, artifact_id, isRandom = false) => {
     let artifactId = artifact_id;
     let rewardArtifact = false;
@@ -342,9 +364,6 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
             image: true,
           },
         });
-
-      // console.log(artifactsByRarity);
-      // console.log(determineRarity());
 
       const userArtifactsById = user.artifacts.map((a) => a.id);
 
@@ -367,8 +386,6 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
       artifactId = rewardArtifact.id;
     }
 
-    // console.log("artifact id", artifactId);
-
     // GENERIC GAIN ARTIFACT
     const hasArtifact =
       user.artifacts.filter((a) => a.id === artifactId).length > 0;
@@ -377,17 +394,23 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
       return false;
       // return ctx.badRequest("You already have that artifact");
     }
-    // console.log("user artifacts, ", user.artifacts);
-    // console.log("artifactId, ", artifactId);
+
     const upload = { artifacts: [...user.artifacts, artifactId] };
 
-    const data = await updateUser(user.id, upload, { artifacts: true });
+    await updateUser(user.id, upload, { artifacts: true });
 
-    return {
-      // modal: { data: rewardArtifact, type: "artifact" },
-      artifact: rewardArtifact,
-    };
+    const artifact = await strapi.db.query("api::artifact.artifact").findOne({
+      where: {
+        id: artifactId,
+      },
+      populate: {
+        image: true,
+      },
+    });
+
+    return artifact;
   },
+
   createOrder: async (user, product, API) => {
     const newOrder = await strapi.db.query("api::order.order").create({
       data: {
@@ -407,6 +430,7 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
     newOrder.product = newOrder.product.id;
     return newOrder;
   },
+
   updateCard: async (user, card_id, action, ctx, contentIndex) => {
     const card = await strapi.db.query("api::card.card").findOne({
       where: {
@@ -419,99 +443,14 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
           },
         },
       },
-
-      // populate: {
-      //   days: {
-      //     contents: true,
-      //   },
-      // },
     });
 
-    async function generateUserCardRelation() {
-      const checkUserCardRelation = await strapi.db
-        .query("api::usercard.usercard")
-        .findOne({ where: { user: user.id, card: card_id } });
-      //populate
-
-      if (!checkUserCardRelation && card.is_open) {
-        const newUserCardRelation = await strapi.db
-          .query("api::usercard.usercard")
-          .create({
-            data: {
-              user: user.id,
-              card: card.id,
-              completed: 0,
-              is_unlocked: true,
-              is_new: true,
-              card_name: card.name,
-              user_name: user.username,
-              completed_contents: [],
-            },
-          });
-        return newUserCardRelation;
-      }
-      return checkUserCardRelation;
-    }
-    // 0. COMPLETE ACTION
-    if (action === "complete_action") {
-      const hasActionTicket = true; // TODO: change it to check real ticket
-      if (hasActionTicket) {
-        //update recently completed
-        let newRecentActions = user.last_completed_actions || [];
-        newRecentActions.push(card_id);
-        if (newRecentActions.length > 10) {
-          newRecentActions.shift();
-        }
-        const update = {
-          last_completed_actions: newRecentActions,
-        };
-        const recentActionsUpdate = updateUser(user.id, update);
-
-        //update objectives
-        await strapi
-          .service("api::usercard.usercard")
-          .objectivesTrigger(user, "action");
-
-        //artifact trigger
-        const artifactData = await strapi
-          .service("api::usercard.usercard")
-          .achievementTrigger(user, "action_complete");
-
-        return {
-          modal: artifactData && {
-            artifactData: artifactData.artifactData,
-            stats: artifactData.data,
-          },
-        };
-      }
-    }
-
-    // 0.5. ========== Action Trigger Favorite ON/OFF
-    if (action === "favorite_action") {
-      // card_id = action id actually
-      let newFavoriteActions = user.favorite_actions || [];
-
-      const alreadyFavorite =
-        newFavoriteActions.length > 0 &&
-        newFavoriteActions.filter((a) => a.id == card_id).length > 0;
-
-      if (alreadyFavorite) {
-        newFavoriteActions = newFavoriteActions.filter((a) => a.id != card_id);
-      } else {
-        newFavoriteActions.push(card_id);
-      }
-
-      const update = {
-        favorite_actions: newFavoriteActions,
-      };
-      const data = updateUser(user.id, update);
-
-      return data;
+    if (!card) {
+      return ctx.throw(400, `Card not found`);
     }
 
     // 1 ======= UNLOCK A CARD
     if (action === "unlock") {
-      // check if have enough stars
       const canUnlock = user.stars >= card.cost;
       if (!canUnlock) {
         return ctx.throw(
@@ -519,50 +458,29 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
           `You do not have enough stars to unlock this card.`
         );
       }
-      //if can -> create usercard relation first
-      const checkUserCardRelation = await strapi.db
-        .query("api::usercard.usercard")
-        .findOne({ where: { user: user.id, card: card_id } });
-      if (!!checkUserCardRelation) {
-        return ctx.throw(400, `You already have this card unlocked.`);
-      }
-      const newUserCardRelation = await strapi.db
-        .query("api::usercard.usercard")
-        .create({
-          data: {
-            user: user.id,
-            card: card.id,
-            completed: 0,
-            glory_points: 0,
-            is_unlocked: true,
-            user_name: user.username,
-            card_name: card.name,
-          },
-        });
+
+      const usercard = await getOrCreateUserCard(ctx, card, true);
 
       const payload = {
         stars: user.stars - card.cost,
       };
 
       await updateUser(user.id, payload);
+
       const artifactData = await strapi
         .service("api::usercard.usercard")
         .achievementTrigger(user, "card_unlock");
+      // @FIX MODAL
+
+      console.log("artifactData", artifactData);
+
       return {
-        usercard: newUserCardRelation,
-        modal: artifactData && {
-          artifactData: artifactData.artifactData,
-          stats: artifactData.data,
-        },
+        usercard: usercard,
+        rewards: { artifact: artifactData.artifactData },
       };
     }
 
-    // check user relation for other actions...
-    const userCardRelation = await generateUserCardRelation();
-    if (!userCardRelation) {
-      ctx.throw(400, `You do not have this card yet.`);
-      return;
-    }
+    const userCardRelation = await getOrCreateUserCard(ctx, card);
 
     // 1.75 ========= COMPLETE A CONTENT
     if (action === "complete_contents") {
@@ -618,46 +536,7 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
         const payload = { last_completed_cards: new_last_completed };
         await updateUser(user.id, payload);
 
-        // add update League feature
-
-        const updatedCompleted = userCardRelation.completed + 1;
-
-        const leagues = [
-          { min: 0, max: 2, league: "unranked" },
-          { min: 3, max: 5, league: "bronze" },
-          { min: 6, max: 9, league: "silver" },
-          { min: 10, max: 19, league: "gold" },
-          { min: 20, max: 49, league: "platinum" },
-          { min: 50, max: 99, league: "diamond" },
-          { min: 100, max: 10000000, league: "grandmaster" },
-        ];
-
-        const findLeague = (completed) => {
-          const league = leagues.filter(
-            (l) => completed >= l.min && completed <= l.max
-          )[0];
-          return {
-            league: league.league,
-            max: league.max,
-          };
-        };
-
-        const updatedLeague = findLeague(updatedCompleted).league;
-        const updatedProgressMax = findLeague(updatedCompleted).max + 1;
-
-        if (updatedLeague !== userCardRelation.league) {
-          // trigger achievement for the league type
-        }
-
-        // First Time Bonus
-        if (userCardRelation.completed < 1) {
-          await strapi
-            .service("api::usercard.usercard")
-            .gainReward(user, "stars", 100);
-        }
-
         const update = {
-          league: updatedLeague,
           completed_progress_max: updatedProgressMax,
           completed: updatedCompleted,
           completed_at: Date.now(),
@@ -708,8 +587,6 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
         data: update,
       });
 
-      // EXTRA LOGIC DUPL;ICATE TO SAVE FAVORITE
-
       let newFavoriteCards = user.favorite_cards || [];
 
       const alreadyFavorite =
@@ -721,16 +598,18 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
       } else {
         newFavoriteCards.push(card_id);
       }
-      console.log(newFavoriteCards);
+
       const userUpdate = {
         favorite_cards: newFavoriteCards,
       };
-      const userData = updateUser(user.id, userUpdate);
+      await updateUser(user.id, userUpdate);
 
       return data;
     }
   },
+
   achievementTrigger: async (user, requirement) => {
+    // @CEREBRO
     let user_stats = user.stats || {
       claimed_artifacts: 0,
       cards_complete: 0,
@@ -738,7 +617,7 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
       daily_objectives_complete: 0,
       weekly_objectives_complete: 0,
     };
-    // @MATH
+    // @CEREBRO
     const artifactTable = {
       cards_complete: [5, 10, 25, 50, 75, 100, 200, 300, 500, 1000],
       card_unlock: [3, 5, 10, 20, 30, 40],
@@ -757,12 +636,13 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
       0;
 
     let artifact = false;
+
     if (shouldGainArtifact) {
       artifact = await strapi.db.query("api::artifact.artifact").findOne({
         where: { type: requirement, require: statUpdated },
       });
 
-      const artifactData = await strapi
+      await strapi
         .service("api::usercard.usercard")
         .gainArtifact(user, artifact.id);
     }
@@ -782,6 +662,7 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
       rewards: shouldGainArtifact && { artifact: artifact },
     };
   },
+
   objectivesTrigger: async (user, requirement) => {
     const objectives = await strapi.db
       .query("api::objective.objective")
@@ -812,36 +693,14 @@ module.exports = createCoreService(API_PATH, ({ strapi }) => ({
       objectives_json: data.objectives_json,
     };
   },
-  gainCard: async (user, cardId) => {
-    // payload = {
-    //   card: 2,  => if fromBox = true // from PACKS
-    // };
 
-    // logic ->
-    const userCardRelation = await getUserCard(user.id, cardId);
-
-    if (userCardRelation) {
-      //update
-      return { message: "you already have this card" };
-    } else {
-      //create new
-      await strapi.db.query("api::usercard.usercard").create({
-        data: {
-          user: user.id,
-          card: cardId,
-          user_name: user.username,
-          card_name: card.name,
-          completed: 0,
-          is_unlocked: true,
-        },
-      });
-    }
-    return {
-      card: cardId,
-    };
+  gainCard: async (ctx, card) => {
+    await getOrCreateUserCard(ctx, card, true);
+    return card;
   },
+
   getRandomUndroppedContent: async (user) => {
-    // dropabble content types
+    //@CEREBRO
     const contentTypes = [
       "ideas",
       "actions", //   "exercises",
