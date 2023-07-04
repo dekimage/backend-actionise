@@ -130,6 +130,63 @@ const getOrCreateUserCard = async (ctx, userId, card) => {
 module.exports = createCoreController(
   "api::usercard.usercard",
   ({ strapi }) => ({
+    // DEV TOOLBOX
+    async resetUser(ctx) {
+      const user = ctx.state.user;
+      let payload = {
+        level: 1,
+        xp: 0,
+        stars: 10000,
+        energy: 1000,
+        streak: 100,
+        highest_buddy_shares: 10,
+        is_notify_me: false,
+        objectives_json: {
+          1: { progress: 15, isCollected: false },
+          2: { progress: 15, isCollected: false },
+          3: { progress: 15, isCollected: false },
+          4: { progress: 15, isCollected: false },
+          5: { progress: 15, isCollected: false },
+          6: { progress: 15, isCollected: false },
+          7: { progress: 15, isCollected: false },
+          8: { progress: 15, isCollected: false },
+        },
+        stats: {
+          mastery: 0,
+          card_unlock: 0,
+          cards_complete: 0,
+          action_complete: 0,
+          claimed_artifacts: 0,
+          daily_objectives_complete: 0,
+          weekly_objectives_complete: 0,
+        },
+        droppedContent: {},
+        unlocked_cards: {},
+        avatar: 1,
+        artifacts: [],
+        claimed_artifacts: [],
+        favorite_cards: [],
+        tutorial_step: 0,
+        shared_by: [],
+        shared_buddies: [],
+        last_unlocked_cards: [],
+        last_completed_cards: [],
+        streak_rewards: {},
+        friends_rewards: {},
+        rewards_tower: {},
+      };
+      const data = updateUser(user.id, payload);
+      //delete all usercards WARNING!!!
+      // WORKAROUND FOR STRAPI QUERY FIRST (find all) THEN DELETE (delete many) -> https://github.com/strapi/strapi/issues/11998
+      const toDelete = await strapi.db
+        .query("api::usercard.usercard")
+        .findMany({ where: { user: user.id } });
+      await strapi.db
+        .query("api::usercard.usercard")
+        .deleteMany({ where: { id: { $in: toDelete.map(({ id }) => id) } } });
+
+      return data;
+    },
     async updateContentType(ctx) {
       const { action, contentType, contentTypeId, cardId } = ctx.request.body;
 
@@ -702,103 +759,6 @@ module.exports = createCoreController(
         levelRewards,
       };
       return userDataModified;
-    },
-
-    async skipAction(ctx) {
-      const { user } = ctx.state;
-      return { success: true };
-      // OLD if it costs to skip
-      const SKIP_COST = 25; //@MATH
-
-      if (user.stars < SKIP_COST && !user.is_subscribed) {
-        ctx.throw(400, "Insufficient Stars to Skip");
-      }
-
-      if (user.is_subscribed) {
-        return { success: true };
-      }
-
-      const upload = {
-        stars: user.stars - SKIP_COST,
-      };
-
-      await updateUser(user.id, upload);
-      return { success: true };
-    },
-
-    async buyCardTicket(ctx) {
-      const user = await getUser(ctx.state.user.id, {
-        card_tickets: true,
-        action_tickets: true,
-      });
-      if (user.energy == 0) {
-        ctx.throw(400, "You don't have enough energy to play this card.");
-      }
-      const card_id = parseInt(ctx.params.id);
-      const type = ctx.request.body.type;
-
-      const card = await strapi.db.query("api::card.card").findOne({
-        where: {
-          id: card_id,
-        },
-      });
-
-      if (type !== "card" && type !== "action") {
-        ctx.throw(400, "Use action correct type.");
-      }
-
-      // if (Number.isInteger(card_id)) {
-      //   ctx.throw(400, "Please provide correct card id.");
-      // }
-
-      const usercard = await strapi.db.query("api::usercard.usercard").findOne({
-        where: { user: user.id, card: card_id },
-        populate: true,
-      });
-
-      if (!card.is_open && !usercard) {
-        ctx.throw(400, "You don't have this card unlocked.");
-      }
-
-      if (card.is_open && !usercard) {
-        const newUserCardRelation = await strapi.db
-          .query("api::usercard.usercard")
-          .create({
-            data: {
-              user: user.id,
-              card: card.id,
-              completed: 0,
-              is_unlocked: true,
-              user_name: user.username,
-              card_name: card.name,
-            },
-          });
-      }
-
-      let upload;
-      if (type == "action") {
-        upload = {
-          action_tickets: [...user.action_tickets, card_id],
-          energy: user.energy - 1,
-        };
-      }
-      if (type == "card") {
-        upload = {
-          card_tickets: [...user.card_tickets, card_id],
-          energy: user.energy - 1,
-        };
-      }
-
-      const data = await updateUser(user.id, upload, {
-        card_tickets: true,
-        action_tickets: true,
-        usercards: {
-          populate: {
-            card: true,
-          },
-        },
-      });
-      return data;
     },
 
     async getRandomCard(ctx) {
