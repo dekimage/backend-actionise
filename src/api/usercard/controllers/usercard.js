@@ -965,19 +965,27 @@ module.exports = createCoreController(
       return { success: true };
     },
 
+    // PROFILE
     async collectStreakReward(ctx) {
       const user = await getUser(ctx.state.user.id, {
         shared_buddies: true,
         artifacts: true,
       });
 
-      const streakCount = ctx.request.body.id;
-
+      const streakCount = ctx.request.body.rewardCount;
       const streakReward = await strapi.db
         .query("api::streakreward.streakreward")
         .findOne({
           where: { streak_count: streakCount },
-          populate: { reward_card: true, artifact: true },
+          populate: {
+            reward_card: {
+              populate: {
+                image: true,
+                realm: true,
+              },
+            },
+            artifact: true,
+          },
         });
 
       let userRewards = user.streak_rewards || {};
@@ -1003,61 +1011,33 @@ module.exports = createCoreController(
         streak_rewards: userRewards,
       };
 
-      const data = await updateUser(user.id, upload);
+      await updateUser(user.id, upload);
       // GAIN REWARDS SERVICE TRIGGER
 
-      let updatedRewards;
+      let rewards = {};
 
       // GAIN STARS
       if (streakReward.reward_type === "stars") {
-        updatedRewards = await strapi
-          .service("api::usercard.usercard")
+        await strapi
+          .service(API_PATH)
           .gainReward(user, "stars", streakReward.reward_amount);
-
-        return {
-          streak_count: data.streak_count,
-          updatedRewards,
-        };
+        rewards.stars = streakReward.reward_amount;
       }
 
       // GAIN CARD
       if (streakReward.reward_type === "card") {
-        updatedRewards = await strapi
-          .service("api::usercard.usercard")
-          .gainCard(user, streakReward.reward_card.id);
-
-        return {
-          streak_count: data.streak_count,
-          updatedRewards,
-        };
+        rewards.card = await strapi
+          .service(API_PATH)
+          .gainCard(ctx, streakReward.reward_card);
       }
 
       // GAIN ARTIFACT
-      if (streakReward.reward_type === "artifact") {
-        updatedRewards = await strapi
-          .service("api::usercard.usercard")
+      if (streakReward.artifact) {
+        rewards.artifact = await strapi
+          .service(API_PATH)
           .gainArtifact(user, streakReward.artifact.id);
-
-        // RETURN MODAL
-        return {
-          modal: [
-            {
-              type: "rewards",
-              data: { stars: updatedRewards },
-            },
-            {
-              type: "artifact",
-              data: streakReward.artifact,
-            },
-          ],
-          streak_count: data.streak_count,
-          updatedRewards,
-          modal: streakReward.artifact && {
-            data: streakReward.artifact,
-            type: "artifact",
-          },
-        };
       }
+      return { rewards };
     },
 
     async collectFriendsReward(ctx) {
@@ -1066,13 +1046,21 @@ module.exports = createCoreController(
         artifacts: true,
       });
 
-      const friendsCount = ctx.request.body.id;
+      const friendsCount = ctx.request.body.userCount;
 
       const friendsReward = await strapi.db
         .query("api::friendreward.friendreward")
         .findOne({
           where: { friends_count: friendsCount },
-          populate: { reward_card: true, artifact: true },
+          populate: {
+            reward_card: {
+              populate: {
+                image: true,
+                realm: true,
+              },
+            },
+            artifact: true,
+          },
         });
 
       let userRewards = user.friends_rewards || {};
@@ -1096,52 +1084,30 @@ module.exports = createCoreController(
 
       const upload = {
         friends_rewards: userRewards,
+        stars: user.stars + STARS_REWARD_FROM_BUDDY_REWARD,
       };
 
-      const data = await updateUser(user.id, upload);
+      await updateUser(user.id, upload);
 
-      let updatedRewards;
-
-      // TODO: ADD HERE WAY TO GAIN PREMIUM DAYS OR ORBS FOR BOTH USERS
+      let rewards = {
+        stars: STARS_REWARD_FROM_BUDDY_REWARD,
+      };
 
       // GAIN CARD
-      if (friendsReward.reward_type === "card") {
-        updatedRewards = await strapi
-          .service("api::usercard.usercard")
-          .gainCard(user, friendsReward.reward_card.id);
-
-        return {
-          updatedRewards,
-        };
+      if (friendsReward.reward_card) {
+        rewards.card = await strapi
+          .service(API_PATH)
+          .gainCard(ctx, friendsReward.reward_card);
       }
 
       // GAIN REWARDS SERVICE TRIGGER
       if (friendsReward.artifact) {
-        updatedRewards = await strapi
-          .service("api::usercard.usercard")
+        rewards.artifact = await strapi
+          .service(API_PATH)
           .gainArtifact(user, friendsReward.artifact.id);
       }
 
-      // GAIN REWARDS SERVICE TRIGGER
-      // if (!friendsReward.artifact) {
-      //   const payload = {
-      //     card: friendsReward.reward_card,
-      //     quantity: friendsReward.reward_amount,
-      //   };
-
-      //   updatedRewards = await strapi
-      //     .service("api::usercard.usercard")
-      //     .gainCard(user, payload, true);
-      // }
-      // RETURN MODAL
-      return {
-        friends_count: data.friends_count,
-        updatedRewards,
-        modal: friendsReward.artifact && {
-          data: friendsReward.artifact,
-          type: "artifact",
-        },
-      };
+      return { rewards };
     },
 
     async collectLevelReward(ctx) {
@@ -1200,7 +1166,7 @@ module.exports = createCoreController(
 
       if (levelReward.reward_type === "artifact") {
         updatedRewards = await strapi
-          .service("api::usercard.usercard")
+          .service(API_PATH)
           .gainArtifact(user, levelReward.artifact.id);
       }
 
@@ -1210,7 +1176,7 @@ module.exports = createCoreController(
         const quantity = levelReward.reward_amount;
 
         updatedRewards = await strapi
-          .service("api::usercard.usercard")
+          .service(API_PATH)
           .gainReward(user, rewardType, quantity);
       }
 
@@ -1319,6 +1285,7 @@ module.exports = createCoreController(
       const data = updateUser(user.id, upload);
       return data;
     },
+
     // SETTINGS
     async updateEmailSettings(ctx) {
       const user = await getUser(ctx.state.user.id);
