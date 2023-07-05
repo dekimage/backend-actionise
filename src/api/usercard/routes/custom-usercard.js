@@ -51,7 +51,11 @@ module.exports = {
       path: "/usercard/claim-artifact",
       handler: "usercard.claimArtifact",
     },
-
+    {
+      method: "PUT",
+      path: "/usercard/reset-user",
+      handler: "usercard.resetUser",
+    },
     {
       method: "PUT",
       path: "/usercard/save-avatar",

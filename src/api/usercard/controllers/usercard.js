@@ -174,6 +174,14 @@ module.exports = createCoreController(
         streak_rewards: {},
         friends_rewards: {},
         rewards_tower: {},
+        email_preferences: {
+          newsletter: true,
+          promotions: true,
+          content: true,
+          updates: true,
+          reminders: true,
+          unsubscribe: false,
+        },
       };
       const data = updateUser(user.id, payload);
       //delete all usercards WARNING!!!
