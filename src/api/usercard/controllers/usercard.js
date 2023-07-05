@@ -644,39 +644,84 @@ module.exports = createCoreController(
       return userDataModified;
     },
 
-    async resetUser(ctx) {
-      const user = ctx.state.user;
-      let payload = {
-        objectives_json: {
-          1: { progress: 5, isCollected: false },
-          2: { progress: 5, isCollected: false },
-          3: { progress: 5, isCollected: false },
-          4: { progress: 5, isCollected: false },
-          5: { progress: 5, isCollected: false },
-          6: { progress: 5, isCollected: false },
-          7: { progress: 5, isCollected: false },
-          8: { progress: 5, isCollected: false },
-        },
-        streak_rewards: {},
-        friends_rewards: {},
-        rewards_tower: {},
-      };
-      const data = updateUser(user.id, payload);
-      return data;
-    },
+    async claimObjective(ctx) {
+      const objectiveId = ctx.request.body.objectiveId;
 
-    async notifyMe(ctx) {
-      const user = await getUser(ctx.state.user.id);
-      const isNotifyMe = ctx.request.body.isNotifyMe;
-      if (typeof isNotifyMe !== "boolean") {
-        ctx.throw(400, "invalid input, must be boolean");
+      const user = await getUser(ctx.state.user.id, { artifacts: true });
+      const user_objectives = user.objectives_json || {};
+
+      const objective = await strapi.db
+        .query("api::objective.objective")
+        .findOne({
+          where: { id: objectiveId },
+        });
+
+      if (!objective) {
+        ctx.throw(400, `This objective does not exist`);
       }
-      const upload = {
-        is_notify_me: isNotifyMe,
+      if (!user_objectives[objective.id] && objective.requirement !== "login") {
+        ctx.throw(400, `This objective is not started yet!`);
+      }
+      if (
+        user_objectives[objective.id].progress < objective.requirement_amount &&
+        objective.requirement !== "login"
+      ) {
+        ctx.throw(400, `This objective is not completed yet!`);
+      }
+
+      if (objective.is_premium && !user.is_subscribed) {
+        ctx.throw(400, `This objective requires a premium subscription`);
+      }
+
+      // objectives trigger for daily/weekly
+      await strapi
+        .service(API_PATH)
+        .objectivesTrigger(
+          user,
+          objective.time_type === "daily" ? "daily" : "weekly"
+        );
+
+      // SAVE PROGRESS
+      const updated_user_objectives = {
+        ...user_objectives,
+        [objective.id]: {
+          isCollected: true,
+          progress: objective.requirement !== "login" ? 0 : 1,
+        },
       };
 
-      await updateUser(user.id, upload);
-      return { success: true };
+      let payload = { objectives_json: updated_user_objectives };
+
+      if (
+        objective.requirement == "login" &&
+        user.streak >= (user.highest_streak_count || 0)
+      ) {
+        payload = {
+          objectives_json: updated_user_objectives,
+          highest_streak_count: (user.highest_streak_count || 0) + 1,
+        };
+      }
+
+      await updateUser(user.id, payload);
+
+      // GAIN REWARDS SERVICE TRIGGER
+      const objectiveRewards = await strapi
+        .service(API_PATH)
+        .gainObjectiveRewards(user, objective);
+
+      // artifact trigger
+      await strapi
+        .service(API_PATH)
+        .achievementTrigger(
+          user,
+          objective.time_type === "daily"
+            ? "daily_objectives_complete"
+            : "weekly_objectives_complete"
+        );
+
+      return {
+        rewards: objectiveRewards,
+      };
     },
 
     async acceptReferral(ctx) {
@@ -687,15 +732,18 @@ module.exports = createCoreController(
       }
       const upload = {
         is_referral_accepted: true,
-        stars: user.stars + 400,
+        stars: user.stars + STARS_REWARD_FROM_BUDDY_REWARD,
       };
 
-      await updateUser(user.id, upload);
-
       const sharedUserId = user.shared_by.id;
-      console.log(sharedUserId);
 
       const sharedUser = await getUser(sharedUserId, { shared_buddies: true });
+
+      if (!sharedUser) {
+        ctx.throw(400, "No user shared by this user");
+      }
+
+      await updateUser(user.id, upload);
 
       // update the shared user
       const sharedUpload = {
@@ -720,7 +768,7 @@ module.exports = createCoreController(
           },
         },
       });
-      console.log({ user: user.usercards });
+
       const cards = await strapi.db.query("api::card.card").findMany({
         where: {
           $or: [
@@ -751,8 +799,6 @@ module.exports = createCoreController(
       randomCard.createdBy = "";
       randomCard.updatedBy = "";
       return randomCard;
-      // 2. filter by user has it unlocked.
-      // 3. return random card.
     },
 
     async updateTutorial(ctx) {
@@ -769,6 +815,20 @@ module.exports = createCoreController(
 
       const data = await updateUser(user.id, upload);
       return data.tutorial_step;
+    },
+
+    async notifyMe(ctx) {
+      const user = await getUser(ctx.state.user.id);
+      const isNotifyMe = ctx.request.body.isNotifyMe;
+      if (typeof isNotifyMe !== "boolean") {
+        ctx.throw(400, "invalid input, must be boolean");
+      }
+      const upload = {
+        is_notify_me: isNotifyMe,
+      };
+
+      await updateUser(user.id, upload);
+      return { success: true };
     },
 
     async collectStreakReward(ctx) {
@@ -1068,88 +1128,6 @@ module.exports = createCoreController(
 
       const data = updateUser(user.id, upload, { claimed_artifacts: true });
       return data;
-    },
-
-    async claimObjective(ctx) {
-      const objectiveId = ctx.request.body.objectiveId;
-
-      const user = await getUser(ctx.state.user.id, { artifacts: true });
-      const user_objectives = user.objectives_json || {};
-
-      const objective = await strapi.db
-        .query("api::objective.objective")
-        .findOne({
-          where: { id: objectiveId },
-        });
-
-      if (!objective) {
-        ctx.throw(400, `This objective does not exist`);
-      }
-      if (!user_objectives[objective.id] && objective.requirement !== "login") {
-        ctx.throw(400, `This objective is not started yet!`);
-      }
-      if (
-        user_objectives[objective.id].progress < objective.requirement_amount &&
-        objective.requirement !== "login"
-      ) {
-        ctx.throw(400, `This objective is not completed yet!`);
-      }
-
-      if (objective.is_premium && !user.is_subscribed) {
-        ctx.throw(400, `This objective requires a premium subscription`);
-      }
-
-      // objectives trigger for daily/weekly
-      await strapi
-        .service("api::usercard.usercard")
-        .objectivesTrigger(
-          user,
-          objective.time_type === "daily" ? "daily" : "weekly"
-        );
-
-      // SAVE PROGRESS
-      const updated_user_objectives = {
-        ...user_objectives,
-        [objective.id]: {
-          isCollected: true,
-          progress: objective.requirement !== "login" ? 0 : 1,
-        },
-      };
-
-      let payload = { objectives_json: updated_user_objectives };
-
-      if (
-        objective.requirement == "login" &&
-        user.streak >= (user.highest_streak_count || 0)
-      ) {
-        payload = {
-          objectives_json: updated_user_objectives,
-          highest_streak_count: (user.highest_streak_count || 0) + 1,
-        };
-      }
-
-      const data = await updateUser(user.id, payload);
-
-      // GAIN REWARDS SERVICE TRIGGER
-      const objectiveRewards = await strapi
-        .service("api::usercard.usercard")
-        .gainObjectiveRewards(user, objective);
-
-      // artifact trigger
-      const artifactData = await strapi
-        .service("api::usercard.usercard")
-        .achievementTrigger(
-          user,
-          objective.time_type === "daily"
-            ? "daily_objectives_complete"
-            : "weekly_objectives_complete"
-        );
-
-      return {
-        user_objectives: data.objectives_json,
-        rewards: objectiveRewards,
-        artifactTrigger: artifactData,
-      };
     },
 
     async purchaseProduct(ctx) {
