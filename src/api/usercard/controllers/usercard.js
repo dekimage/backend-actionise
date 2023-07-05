@@ -1,9 +1,10 @@
 "use strict";
+const fs = require("fs");
+const path = require("path");
 const { createCoreController } = require("@strapi/strapi").factories;
-const API_PATH = "api::usercard.usercard";
-
-// @CEREBRO
-const STARS_REWARD_FROM_BUDDY_REWARD = 400;
+const { createToken } = require("../../../../utils/functions");
+const bcrypt = require("bcryptjs");
+// @CALC
 const maxProgressPerContentType = {
   ideas: 3,
   actions: 5,
@@ -18,7 +19,6 @@ const maxProgressPerContentType = {
   quotes: 5,
   questions: 3,
 };
-
 function singularize(word) {
   switch (word) {
     case "ideas":
@@ -72,54 +72,54 @@ const formatDate = (date) => {
   ].join("-");
 };
 const getUserCard = async (userId, cardId) => {
-  const usercard = await strapi
-    .query(API_PATH)
+  const userCardRelation = await strapi
+    .query("api::usercard.usercard")
     .findOne({ where: { user: userId, card: cardId } });
-  return usercard;
+  return userCardRelation;
 };
 const getUser = async (id, populate = {}) => {
-  // const defaultPopulate = {
-  //   usercards: true,
-  //   orders: true,
-  // };
+  const defaultPopulate = {
+    usercards: true,
+    orders: true,
+  };
   const entry = await strapi.db
     .query("plugin::users-permissions.user")
     .findOne({
       // select: ['title', 'description'],
       where: { id: id },
-      populate: { ...populate },
+      populate: { ...defaultPopulate, ...populate },
     });
   return sanitizeUser(entry);
 };
 const updateUser = async (id, payload, populate = {}) => {
-  // const defaultPopulate = { usercards: true, orders: true };
+  const defaultPopulate = { usercards: true, orders: true };
   const user = await strapi.db.query("plugin::users-permissions.user").update({
     where: { id: id },
     data: payload,
-    // populate: { ...defaultPopulate, ...populate },
-    populate: { ...populate },
+    populate: { ...defaultPopulate, ...populate },
   });
 
   return sanitizeUser(user);
 };
-const getOrCreateUserCard = async (ctx, card) => {
-  const userId = ctx.state.user.id;
+const getOrCreateUserCard = async (ctx, userId, card) => {
   const checkUserCardRelation = await strapi.db
-    .query(API_PATH)
+    .query("api::usercard.usercard")
     .findOne({ where: { user: userId, card: card.id } });
   if (!checkUserCardRelation && card.is_open) {
-    const newUserCardRelation = await strapi.db.query(API_PATH).create({
-      data: {
-        user: userId,
-        card: card.id,
-        completed: 0,
-        is_unlocked: true,
-        is_new: true,
-        completed_contents: [],
-        progressMap: {},
-        progressQuest: {},
-      },
-    });
+    const newUserCardRelation = await strapi.db
+      .query("api::usercard.usercard")
+      .create({
+        data: {
+          user: userId,
+          card: card.id,
+          completed: 0,
+          is_unlocked: true,
+          is_new: true,
+          completed_contents: [],
+          progressMap: {},
+          progressQuest: {},
+        },
+      });
     return newUserCardRelation;
   }
   if (!checkUserCardRelation && !card.is_open) {
@@ -187,8 +187,6 @@ module.exports = createCoreController(
 
       return data;
     },
-    // LEARN/CARD
-    // check security here...
     async updateContentType(ctx) {
       const { action, contentType, contentTypeId, cardId } = ctx.request.body;
 
@@ -230,7 +228,7 @@ module.exports = createCoreController(
         },
       });
 
-      let userCard = await getOrCreateUserCard(ctx, card);
+      let userCard = await getOrCreateUserCard(ctx, ctx.state.user.id, card);
 
       let progressMap = userCard?.progressMap || {};
 
@@ -280,7 +278,7 @@ module.exports = createCoreController(
 
         // SAVE USERCARD - PROGRESSMAP
 
-        await strapi.db.query(API_PATH).update({
+        await strapi.db.query("api::usercard.usercard").update({
           where: { id: userCard.id },
           data: {
             progressMap,
@@ -358,7 +356,7 @@ module.exports = createCoreController(
           progressQuest[contentType].progress++;
         }
 
-        userCard = await strapi.db.query(API_PATH).update({
+        userCard = await strapi.db.query("api::usercard.usercard").update({
           where: { id: userCard.id },
           data: {
             progressMap,
@@ -366,7 +364,9 @@ module.exports = createCoreController(
           },
         });
 
-        await strapi.service(API_PATH).objectivesTrigger(user, "energy");
+        await strapi
+          .service("api::usercard.usercard")
+          .objectivesTrigger(user, "energy");
 
         // ACHIEVEMENTS UPDATE??
 
@@ -387,7 +387,7 @@ module.exports = createCoreController(
 
         // ROLL RANDOM CONTENT TYPE
         const randomReward = await strapi
-          .service(API_PATH)
+          .service("api::usercard.usercard")
           .getRandomUndroppedContent(user);
 
         const { reward, rewardType, error } = randomReward;
@@ -408,6 +408,7 @@ module.exports = createCoreController(
 
         const usercardFromReward = await getOrCreateUserCard(
           ctx,
+          ctx.state.user.id,
           cardFromReward.card
         );
 
@@ -423,11 +424,15 @@ module.exports = createCoreController(
           saved: false,
         };
 
-        strapi.entityService.update(API_PATH, usercardFromReward.id, {
-          data: {
-            progressMap: progressMapFromReward,
-          },
-        });
+        strapi.entityService.update(
+          "api::usercard.usercard",
+          usercardFromReward.id,
+          {
+            data: {
+              progressMap: progressMapFromReward,
+            },
+          }
+        );
 
         // UPDATE DROPPEDCONTENT JSON IN USER ->
         const droppedContent = user.droppedContent || {};
@@ -447,7 +452,7 @@ module.exports = createCoreController(
         const userData = updateUser(user.id, userUpdate);
 
         // UPDATE THE PROGRESS QUEST IN THE ORIGINAL USERCARD ->
-        userCard = await strapi.db.query(API_PATH).update({
+        userCard = await strapi.db.query("api::usercard.usercard").update({
           where: { id: userCard.id },
           data: {
             progressQuest,
@@ -458,43 +463,76 @@ module.exports = createCoreController(
       }
     },
 
-    // fix update/program
-    async updateCard(ctx) {
-      const user = await getUser(ctx.state.user.id, {
-        last_completed_cards: true,
-        last_unlocked_cards: true,
-        artifacts: true,
-      });
-
-      const card_id = parseInt(ctx.request.body.cardId);
-      const action = ctx.request.body.action;
-      const contentIndex = ctx.request.body.contentIndex || 0;
-
-      //@CEREBRO - TYPES
-      if (
-        action !== "complete" &&
-        action !== "unlock" &&
-        action !== "favorite_card" &&
-        action !== "complete_contents"
-      ) {
-        ctx.throw(400, "You can't update the card with unknown intent.");
+    async updateSettings(ctx) {
+      const user = await getUser(ctx.state.user.id);
+      const { settings } = ctx.request.body;
+      if (!settings) {
+        ctx.throw(400, "invalid input");
       }
+      const payload = {
+        email_preferences: settings,
+      };
+      const data = updateUser(user.id, payload);
+      console.log(data);
+      return data;
+    },
 
-      const usercard = await strapi
-        .service(API_PATH)
-        .updateCard(user, card_id, action, ctx, contentIndex);
+    async updateUserBasicInfo(ctx) {
+      const user = await getUser(ctx.state.user.id);
+      const { value, inputName } = ctx.request.body;
+      if (!value || !inputName) {
+        ctx.throw(400, "invalid input");
+      }
+      if (
+        inputName !== "username" &&
+        inputName !== "age" &&
+        inputName !== "gender"
+      ) {
+        ctx.throw(400, "invalid input");
+      }
+      const payload = {
+        [inputName]: value,
+      };
+      const data = updateUser(user.id, payload);
+      return data;
+    },
 
-      console.log(usercard);
+    async resetUser(ctx) {
+      const user = ctx.state.user;
+      let payload = {
+        objectives_json: {
+          1: { progress: 5, isCollected: false },
+          2: { progress: 5, isCollected: false },
+          3: { progress: 5, isCollected: false },
+          4: { progress: 5, isCollected: false },
+          5: { progress: 5, isCollected: false },
+          6: { progress: 5, isCollected: false },
+          7: { progress: 5, isCollected: false },
+          8: { progress: 5, isCollected: false },
+        },
+        streak_rewards: {},
+        friends_rewards: {},
+        rewards_tower: {},
+      };
+      const data = updateUser(user.id, payload);
+      return data;
+    },
 
-      // OMITTING SENSITIVE DATA TODO: REFETCH QUERY -> NO NEED FOR ANY DATA
-      // updatedUserCardRelation["users_permissions_user"] = user.id;
-      // updatedUserCardRelation["updated_by"] = user.id;
-      // updatedUserCardRelation.users_permissions_user.id;
-      return usercard;
+    async notifyMe(ctx) {
+      const user = await getUser(ctx.state.user.id);
+      const isNotifyMe = ctx.request.body.isNotifyMe;
+      if (typeof isNotifyMe !== "boolean") {
+        ctx.throw(400, "invalid input, must be boolean");
+      }
+      const upload = {
+        is_notify_me: isNotifyMe,
+      };
+
+      await updateUser(user.id, upload);
+      return { success: true };
     },
 
     async rateCard(ctx) {
-      //@CEREBRO
       const availableRatings = [1, 2, 3, 4, 5, 6, 7, 8];
       const user = await getUser(ctx.state.user.id);
       const rating = ctx.request.body.rating;
@@ -530,19 +568,87 @@ module.exports = createCoreController(
       }
 
       if (!usercard.isRated) {
-        await strapi.service(API_PATH).gainReward(user, "stars", 25);
+        await strapi
+          .service("api::usercard.usercard")
+          .gainReward(user, "stars", 25);
         hasRated = true;
       }
 
-      const usercardUpdated = await strapi.db.query(API_PATH).update({
-        where: { user: user.id, card: cardId },
-        data: upload,
-      });
+      const usercardUpdated = await strapi.db
+        .query("api::usercard.usercard")
+        .update({
+          where: { user: user.id, card: cardId },
+          data: upload,
+        });
 
-      return { usercard: usercardUpdated, hasRated, rewards: { stars: 25 } };
+      return { usercard: usercardUpdated, hasRated };
     },
 
-    // TODAY
+    async acceptReferral(ctx) {
+      const user = await getUser(ctx.state.user.id, { shared_by: true });
+      // update self
+      if (user.is_referral_accepted) {
+        ctx.throw(400, "You already claimed this reward");
+      }
+      const upload = {
+        is_referral_accepted: true,
+        stars: user.stars + 400,
+      };
+
+      await updateUser(user.id, upload);
+
+      const sharedUserId = user.shared_by.id;
+      console.log(sharedUserId);
+
+      const sharedUser = await getUser(sharedUserId, { shared_buddies: true });
+
+      // update the shared user
+      const sharedUpload = {
+        highest_buddy_shares: sharedUser.highest_buddy_shares + 1,
+        // shared_buddies: [...sharedUser.shared_buddies, sharedUserId],
+      };
+
+      await updateUser(sharedUserId, sharedUpload);
+      return { success: true };
+    },
+
+    async sendFeatureMail(ctx) {
+      const { details, subject } = ctx.request.body;
+
+      // Check if user has exceeded suggestion limit for the day
+      const user = ctx.state.user;
+      const name = user.username;
+      const email = user.email;
+      const suggestionLimit = 25; // maximum number of suggestions
+
+      const suggestionCount = user.mail_send_count || 0;
+
+      if (suggestionCount >= suggestionLimit) {
+        return ctx.badRequest(
+          `You have exceeded the suggestion limit of ${suggestionLimit}. Please contact us at our email contact@actionise.com if you wish this limit to reset.`
+        );
+      }
+
+      // Send email with user's input details using SendGrid API
+
+      await strapi.plugins["email"].services.email.send({
+        to: "contact@actionise.com",
+        subject: subject || "New email",
+        text: `Name: ${name}\nEmail: ${email}\nDetails: ${details}`,
+      });
+
+      // Update user's suggestion count and last suggestion date
+      const upload = {
+        mail_send_count: suggestionCount + 1,
+      };
+      await updateUser(user.id, upload);
+
+      // Return success message
+      return {
+        message: "Feature suggestion or bug report submitted successfully.",
+      };
+    },
+
     async me(ctx) {
       const user = ctx.state.user;
 
@@ -574,7 +680,9 @@ module.exports = createCoreController(
       const today = new Date();
       const isRestarted = formatDate(today) === user.reset_date;
       if (!isRestarted) {
-        await strapi.service(API_PATH).resetUser(user, today, formatDate);
+        await strapi
+          .service("api::usercard.usercard")
+          .resetUser(user, today, formatDate);
       }
 
       const data = await getUser(user.id, {
@@ -582,6 +690,15 @@ module.exports = createCoreController(
           populate: {
             card: true,
           },
+        },
+        card_tickets: {
+          populate: true,
+        },
+        action_tickets: {
+          populate: true,
+        },
+        favorite_actions: {
+          populate: true,
         },
         favorite_cards: {
           populate: true,
@@ -644,117 +761,6 @@ module.exports = createCoreController(
       return userDataModified;
     },
 
-    async claimObjective(ctx) {
-      const objectiveId = ctx.request.body.objectiveId;
-
-      const user = await getUser(ctx.state.user.id, { artifacts: true });
-      const user_objectives = user.objectives_json || {};
-
-      const objective = await strapi.db
-        .query("api::objective.objective")
-        .findOne({
-          where: { id: objectiveId },
-        });
-
-      if (!objective) {
-        ctx.throw(400, `This objective does not exist`);
-      }
-      if (!user_objectives[objective.id] && objective.requirement !== "login") {
-        ctx.throw(400, `This objective is not started yet!`);
-      }
-      if (
-        user_objectives[objective.id].progress < objective.requirement_amount &&
-        objective.requirement !== "login"
-      ) {
-        ctx.throw(400, `This objective is not completed yet!`);
-      }
-
-      if (objective.is_premium && !user.is_subscribed) {
-        ctx.throw(400, `This objective requires a premium subscription`);
-      }
-
-      // objectives trigger for daily/weekly
-      await strapi
-        .service(API_PATH)
-        .objectivesTrigger(
-          user,
-          objective.time_type === "daily" ? "daily" : "weekly"
-        );
-
-      // SAVE PROGRESS
-      const updated_user_objectives = {
-        ...user_objectives,
-        [objective.id]: {
-          isCollected: true,
-          progress: objective.requirement !== "login" ? 0 : 1,
-        },
-      };
-
-      let payload = { objectives_json: updated_user_objectives };
-
-      if (
-        objective.requirement == "login" &&
-        user.streak >= (user.highest_streak_count || 0)
-      ) {
-        payload = {
-          objectives_json: updated_user_objectives,
-          highest_streak_count: (user.highest_streak_count || 0) + 1,
-        };
-      }
-
-      await updateUser(user.id, payload);
-
-      // GAIN REWARDS SERVICE TRIGGER
-      const objectiveRewards = await strapi
-        .service(API_PATH)
-        .gainObjectiveRewards(user, objective);
-
-      // artifact trigger
-      await strapi
-        .service(API_PATH)
-        .achievementTrigger(
-          user,
-          objective.time_type === "daily"
-            ? "daily_objectives_complete"
-            : "weekly_objectives_complete"
-        );
-
-      return {
-        rewards: objectiveRewards,
-      };
-    },
-
-    async acceptReferral(ctx) {
-      const user = await getUser(ctx.state.user.id, { shared_by: true });
-      // update self
-      if (user.is_referral_accepted) {
-        ctx.throw(400, "You already claimed this reward");
-      }
-      const upload = {
-        is_referral_accepted: true,
-        stars: user.stars + STARS_REWARD_FROM_BUDDY_REWARD,
-      };
-
-      const sharedUserId = user.shared_by.id;
-
-      const sharedUser = await getUser(sharedUserId, { shared_buddies: true });
-
-      if (!sharedUser) {
-        ctx.throw(400, "No user shared by this user");
-      }
-
-      await updateUser(user.id, upload);
-
-      // update the shared user
-      const sharedUpload = {
-        highest_buddy_shares: sharedUser.highest_buddy_shares + 1,
-        // shared_buddies: [...sharedUser.shared_buddies, sharedUserId],
-      };
-
-      await updateUser(sharedUserId, sharedUpload);
-      return { success: true };
-    },
-
     async getRandomCard(ctx) {
       // 1. get all cards
       function extractCardsIds(usercards) {
@@ -768,7 +774,7 @@ module.exports = createCoreController(
           },
         },
       });
-
+      console.log({ user: user.usercards });
       const cards = await strapi.db.query("api::card.card").findMany({
         where: {
           $or: [
@@ -799,6 +805,44 @@ module.exports = createCoreController(
       randomCard.createdBy = "";
       randomCard.updatedBy = "";
       return randomCard;
+      // 2. filter by user has it unlocked.
+      // 3. return random card.
+    },
+
+    async updateCard(ctx) {
+      const user = await getUser(ctx.state.user.id, {
+        last_completed_cards: true,
+        last_unlocked_cards: true,
+        actions: true,
+        favorite_actions: true,
+        favorite_cards: true,
+        artifacts: true,
+      });
+
+      const card_id = parseInt(ctx.request.body.id);
+      const action = ctx.request.body.action;
+      const contentIndex = ctx.request.body.contentIndex || 0;
+
+      if (
+        action !== "complete" &&
+        action !== "unlock" &&
+        action !== "favorite_card" &&
+        action !== "complete_action" &&
+        action !== "favorite_action" &&
+        action !== "complete_contents"
+      ) {
+        ctx.throw(400, "You can't update the card with unknown intent.");
+      }
+
+      let updatedUserCardRelation = await strapi
+        .service("api::usercard.usercard")
+        .updateCard(user, card_id, action, ctx, contentIndex);
+
+      // OMITTING SENSITIVE DATA TODO: REFETCH QUERY -> NO NEED FOR ANY DATA
+      // updatedUserCardRelation["users_permissions_user"] = user.id;
+      // updatedUserCardRelation["updated_by"] = user.id;
+      // updatedUserCardRelation.users_permissions_user.id;
+      return updatedUserCardRelation;
     },
 
     async updateTutorial(ctx) {
@@ -815,273 +859,6 @@ module.exports = createCoreController(
 
       const data = await updateUser(user.id, upload);
       return data.tutorial_step;
-    },
-
-    // SHOP
-    async purchaseProduct(ctx) {
-      const user = await getUser(ctx.state.user.id, {
-        orders: {
-          populate: {
-            product: true,
-          },
-        },
-      });
-
-      const productId = ctx.request.body.id;
-
-      // const payment_env = ctx.request.body.payment_env;
-      const payment_env = "apple";
-
-      const product = await strapi.db.query("api::product.product").findOne({
-        where: {
-          id: productId,
-        },
-        populate: { bundle: true },
-      });
-
-      if (!product) {
-        return ctx.badRequest("Product does not exist.");
-      }
-
-      // validation from PAYMENT GATEWAY - DELETE FAKE DATA
-      const API = {
-        status: "paid",
-        amount: product.amount,
-        payment_env: payment_env,
-      };
-
-      //1. Android Validation
-      if (payment_env === "android") {
-        //validate purchase status -> API
-        // if (okay) => go next, if not return error
-      }
-
-      //2. Apple Validation
-      if (payment_env === "apple") {
-        //validate purchase status -> API
-        // if (okay) => go next, if not return error
-      }
-
-      //3. CASYS CPAY Validation
-      if (payment_env === "cpay") {
-        //validate purchase status -> API ???
-        // if (okay) => go next, if not return error
-      }
-
-      if (
-        payment_env !== "android" &&
-        payment_env !== "apple" &&
-        payment_env !== "cpay"
-      ) {
-        //error no environment or payment gateway
-        return ctx.badRequest("No Payment Method");
-      }
-
-      // IF PAYMENT IS SUCCESSFUL -> EXECUTE LOGIC
-
-      // IF PRODUCT === SUBSCRIPTION
-      if (product.type === "subscription") {
-        if (user.is_subscribed) {
-          return ctx.badRequest("You are already subscribed.");
-        }
-
-        const upload = {
-          is_subscribed: true,
-          subscription_date: Date.now(),
-        };
-
-        const updatedUser = updateUser(user.id, upload);
-
-        const newOrder = await strapi
-          .service(API_PATH)
-          .createOrder(user, product, API);
-
-        const data = {
-          newOrder,
-          is_subscribed: updatedUser.is_subscribed,
-        };
-
-        // SUBSCRIPTION_PURCHASE_SUCCESS
-        return data;
-      }
-
-      // IF PRODUCT === STARS
-      if (product.type === "gems") {
-        const newOrder = await strapi
-          .service(API_PATH)
-          .createOrder(user, product, API);
-
-        const upload = { gems: user.gems + product.amount };
-        await updateUser(user.id, upload);
-
-        const data = {
-          newOrder,
-          gems: user.gems + product.amount,
-        };
-        return data;
-        // "GEMS_PURCHASE_SUCCESS"
-      }
-
-      // IF PRODUCT === BUNDLE
-      if (product.type === "bundle") {
-        const hasBundle =
-          user.orders.filter((order) => order.product.id === product.id)
-            .length > 0;
-
-        if (hasBundle) {
-          return ctx.badRequest("You have already purchased this bundle.");
-        }
-
-        for (let i = 0; i < product.bundle.length; i++) {
-          await strapi
-            .service(API_PATH)
-            .gainReward(
-              user,
-              product.bundle[i].type,
-              product.bundle[i].quantity
-            );
-        }
-
-        const newOrder = await strapi
-          .service(API_PATH)
-          .createOrder(user, product, API);
-
-        // BUNDLE_PURCHASE_SUCCESS
-        return newOrder;
-      }
-    },
-
-    async notifyMe(ctx) {
-      const user = await getUser(ctx.state.user.id);
-      const isNotifyMe = ctx.request.body.isNotifyMe;
-      if (typeof isNotifyMe !== "boolean") {
-        ctx.throw(400, "invalid input, must be boolean");
-      }
-      const upload = {
-        is_notify_me: isNotifyMe,
-      };
-
-      await updateUser(user.id, upload);
-      return { success: true };
-    },
-
-    // SETTINGS
-    async updateEmailSettings(ctx) {
-      const user = await getUser(ctx.state.user.id);
-      const { settings } = ctx.request.body;
-      // Validate the email_preferences object
-      if (typeof email_preferences !== "object" || email_preferences === null) {
-        ctx.throw(400, "Invalid email preferences object");
-      }
-
-      const allowedKeys = [
-        "newsletter",
-        "promotions",
-        "content",
-        "updates",
-        "reminders",
-        "unsubscribe",
-      ];
-
-      // Check if the keys in email_preferences are valid
-      for (const key in email_preferences) {
-        if (!allowedKeys.includes(key)) {
-          ctx.throw(400, `Invalid email preferences key: ${key}`);
-        }
-      }
-
-      // Check if the values are booleans
-      for (const key in email_preferences) {
-        if (typeof email_preferences[key] !== "boolean") {
-          ctx.throw(400, `Invalid value for email preference: ${key}`);
-        }
-      }
-
-      const payload = {
-        email_preferences: settings,
-      };
-
-      await updateUser(user.id, payload);
-
-      return { success: true };
-    },
-
-    async updateUserBasicInfo(ctx) {
-      const user = await getUser(ctx.state.user.id);
-      const { value, inputName } = ctx.request.body;
-      if (!value || !inputName) {
-        ctx.throw(400, "invalid input");
-      }
-      if (
-        inputName !== "username" &&
-        inputName !== "age" &&
-        inputName !== "gender"
-      ) {
-        ctx.throw(400, "invalid input");
-      }
-      const payload = {
-        [inputName]: value,
-      };
-      const data = updateUser(user.id, payload);
-      return data;
-    },
-
-    async resetUser(ctx) {
-      const user = ctx.state.user;
-      let payload = {
-        objectives_json: {
-          1: { progress: 5, isCollected: false },
-          2: { progress: 5, isCollected: false },
-          3: { progress: 5, isCollected: false },
-          4: { progress: 5, isCollected: false },
-          5: { progress: 5, isCollected: false },
-          6: { progress: 5, isCollected: false },
-          7: { progress: 5, isCollected: false },
-          8: { progress: 5, isCollected: false },
-        },
-        streak_rewards: {},
-        friends_rewards: {},
-        rewards_tower: {},
-      };
-      const data = updateUser(user.id, payload);
-      return data;
-    },
-
-    async sendFeatureMail(ctx) {
-      const { details, subject } = ctx.request.body;
-
-      // Check if user has exceeded suggestion limit for the day
-      const user = ctx.state.user;
-      const name = user.username;
-      const email = user.email;
-      const suggestionLimit = 25; // maximum number of suggestions
-
-      const suggestionCount = user.mail_send_count || 0;
-
-      if (suggestionCount >= suggestionLimit) {
-        return ctx.badRequest(
-          `You have exceeded the suggestion limit of ${suggestionLimit}. Please contact us at our email contact@actionise.com if you wish this limit to reset.`
-        );
-      }
-
-      // Send email with user's input details using SendGrid API
-
-      await strapi.plugins["email"].services.email.send({
-        to: "contact@actionise.com",
-        subject: subject || "New email",
-        text: `Name: ${name}\nEmail: ${email}\nDetails: ${details}`,
-      });
-
-      // Update user's suggestion count and last suggestion date
-      const upload = {
-        mail_send_count: suggestionCount + 1,
-      };
-      await updateUser(user.id, upload);
-
-      // Return success message
-      return {
-        message: "Feature suggestion or bug report submitted successfully.",
-      };
     },
 
     async collectStreakReward(ctx) {
@@ -1381,6 +1158,221 @@ module.exports = createCoreController(
 
       const data = updateUser(user.id, upload, { claimed_artifacts: true });
       return data;
+    },
+
+    async claimObjective(ctx) {
+      const objectiveId = ctx.request.body.objectiveId;
+
+      const user = await getUser(ctx.state.user.id, { artifacts: true });
+      const user_objectives = user.objectives_json || {};
+
+      const objective = await strapi.db
+        .query("api::objective.objective")
+        .findOne({
+          where: { id: objectiveId },
+        });
+
+      if (!objective) {
+        ctx.throw(400, `This objective does not exist`);
+      }
+      if (!user_objectives[objective.id] && objective.requirement !== "login") {
+        ctx.throw(400, `This objective is not started yet!`);
+      }
+      if (
+        user_objectives[objective.id].progress < objective.requirement_amount &&
+        objective.requirement !== "login"
+      ) {
+        ctx.throw(400, `This objective is not completed yet!`);
+      }
+
+      if (objective.is_premium && !user.is_subscribed) {
+        ctx.throw(400, `This objective requires a premium subscription`);
+      }
+
+      // objectives trigger for daily/weekly
+      await strapi
+        .service("api::usercard.usercard")
+        .objectivesTrigger(
+          user,
+          objective.time_type === "daily" ? "daily" : "weekly"
+        );
+
+      // SAVE PROGRESS
+      const updated_user_objectives = {
+        ...user_objectives,
+        [objective.id]: {
+          isCollected: true,
+          progress: objective.requirement !== "login" ? 0 : 1,
+        },
+      };
+
+      let payload = { objectives_json: updated_user_objectives };
+
+      if (
+        objective.requirement == "login" &&
+        user.streak >= (user.highest_streak_count || 0)
+      ) {
+        payload = {
+          objectives_json: updated_user_objectives,
+          highest_streak_count: (user.highest_streak_count || 0) + 1,
+        };
+      }
+
+      const data = await updateUser(user.id, payload);
+
+      // GAIN REWARDS SERVICE TRIGGER
+      const objectiveRewards = await strapi
+        .service("api::usercard.usercard")
+        .gainObjectiveRewards(user, objective);
+
+      // artifact trigger
+      const artifactData = await strapi
+        .service("api::usercard.usercard")
+        .achievementTrigger(
+          user,
+          objective.time_type === "daily"
+            ? "daily_objectives_complete"
+            : "weekly_objectives_complete"
+        );
+
+      return {
+        user_objectives: data.objectives_json,
+        rewards: objectiveRewards,
+        artifactTrigger: artifactData,
+      };
+    },
+
+    async purchaseProduct(ctx) {
+      const user = await getUser(ctx.state.user.id, {
+        orders: {
+          populate: {
+            product: true,
+          },
+        },
+      });
+
+      const productId = ctx.request.body.id;
+
+      // const payment_env = ctx.request.body.payment_env;
+      const payment_env = "apple";
+
+      const product = await strapi.db.query("api::product.product").findOne({
+        where: {
+          id: productId,
+        },
+        populate: { bundle: true },
+      });
+
+      if (!product) {
+        return ctx.badRequest("Product does not exist.");
+      }
+
+      // validation from PAYMENT GATEWAY - DELETE FAKE DATA
+      const API = {
+        status: "paid",
+        amount: product.amount,
+        payment_env: payment_env,
+      };
+
+      //1. Android Validation
+      if (payment_env === "android") {
+        //validate purchase status -> API
+        // if (okay) => go next, if not return error
+      }
+
+      //2. Apple Validation
+      if (payment_env === "apple") {
+        //validate purchase status -> API
+        // if (okay) => go next, if not return error
+      }
+
+      //3. CASYS CPAY Validation
+      if (payment_env === "cpay") {
+        //validate purchase status -> API ???
+        // if (okay) => go next, if not return error
+      }
+
+      if (
+        payment_env !== "android" &&
+        payment_env !== "apple" &&
+        payment_env !== "cpay"
+      ) {
+        //error no environment or payment gateway
+        return ctx.badRequest("No Payment Method");
+      }
+
+      // IF PAYMENT IS SUCCESSFUL -> EXECUTE LOGIC
+
+      // IF PRODUCT === SUBSCRIPTION
+      if (product.type === "subscription") {
+        if (user.is_subscribed) {
+          return ctx.badRequest("You are already subscribed.");
+        }
+
+        const upload = {
+          is_subscribed: true,
+          subscription_date: Date.now(),
+        };
+
+        const updatedUser = updateUser(user.id, upload);
+
+        const newOrder = await strapi
+          .service("api::usercard.usercard")
+          .createOrder(user, product, API);
+
+        const data = {
+          newOrder,
+          is_subscribed: updatedUser.is_subscribed,
+        };
+
+        // SUBSCRIPTION_PURCHASE_SUCCESS
+        return data;
+      }
+
+      // IF PRODUCT === STARS
+      if (product.type === "gems") {
+        const newOrder = await strapi
+          .service("api::usercard.usercard")
+          .createOrder(user, product, API);
+
+        const upload = { gems: user.gems + product.amount };
+        await updateUser(user.id, upload);
+
+        const data = {
+          newOrder,
+          gems: user.gems + product.amount,
+        };
+        return data;
+        // "GEMS_PURCHASE_SUCCESS"
+      }
+
+      // IF PRODUCT === BUNDLE
+      if (product.type === "bundle") {
+        const hasBundle =
+          user.orders.filter((order) => order.product.id === product.id)
+            .length > 0;
+
+        if (hasBundle) {
+          return ctx.badRequest("You have already purchased this bundle.");
+        }
+
+        for (let i = 0; i < product.bundle.length; i++) {
+          await strapi
+            .service("api::usercard.usercard")
+            .gainReward(
+              user,
+              product.bundle[i].type,
+              product.bundle[i].quantity
+            );
+        }
+
+        const newOrder = await strapi
+          .service("api::usercard.usercard")
+          .createOrder(user, product, API);
+
+        // BUNDLE_PURCHASE_SUCCESS
+        return newOrder;
+      }
     },
 
     async followBuddy(ctx) {
