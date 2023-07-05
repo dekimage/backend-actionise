@@ -817,6 +817,140 @@ module.exports = createCoreController(
       return data.tutorial_step;
     },
 
+    // SHOP
+    async purchaseProduct(ctx) {
+      const user = await getUser(ctx.state.user.id, {
+        orders: {
+          populate: {
+            product: true,
+          },
+        },
+      });
+
+      const productId = ctx.request.body.id;
+
+      // const payment_env = ctx.request.body.payment_env;
+      const payment_env = "apple";
+
+      const product = await strapi.db.query("api::product.product").findOne({
+        where: {
+          id: productId,
+        },
+        populate: { bundle: true },
+      });
+
+      if (!product) {
+        return ctx.badRequest("Product does not exist.");
+      }
+
+      // validation from PAYMENT GATEWAY - DELETE FAKE DATA
+      const API = {
+        status: "paid",
+        amount: product.amount,
+        payment_env: payment_env,
+      };
+
+      //1. Android Validation
+      if (payment_env === "android") {
+        //validate purchase status -> API
+        // if (okay) => go next, if not return error
+      }
+
+      //2. Apple Validation
+      if (payment_env === "apple") {
+        //validate purchase status -> API
+        // if (okay) => go next, if not return error
+      }
+
+      //3. CASYS CPAY Validation
+      if (payment_env === "cpay") {
+        //validate purchase status -> API ???
+        // if (okay) => go next, if not return error
+      }
+
+      if (
+        payment_env !== "android" &&
+        payment_env !== "apple" &&
+        payment_env !== "cpay"
+      ) {
+        //error no environment or payment gateway
+        return ctx.badRequest("No Payment Method");
+      }
+
+      // IF PAYMENT IS SUCCESSFUL -> EXECUTE LOGIC
+
+      // IF PRODUCT === SUBSCRIPTION
+      if (product.type === "subscription") {
+        if (user.is_subscribed) {
+          return ctx.badRequest("You are already subscribed.");
+        }
+
+        const upload = {
+          is_subscribed: true,
+          subscription_date: Date.now(),
+        };
+
+        const updatedUser = updateUser(user.id, upload);
+
+        const newOrder = await strapi
+          .service(API_PATH)
+          .createOrder(user, product, API);
+
+        const data = {
+          newOrder,
+          is_subscribed: updatedUser.is_subscribed,
+        };
+
+        // SUBSCRIPTION_PURCHASE_SUCCESS
+        return data;
+      }
+
+      // IF PRODUCT === STARS
+      if (product.type === "gems") {
+        const newOrder = await strapi
+          .service(API_PATH)
+          .createOrder(user, product, API);
+
+        const upload = { gems: user.gems + product.amount };
+        await updateUser(user.id, upload);
+
+        const data = {
+          newOrder,
+          gems: user.gems + product.amount,
+        };
+        return data;
+        // "GEMS_PURCHASE_SUCCESS"
+      }
+
+      // IF PRODUCT === BUNDLE
+      if (product.type === "bundle") {
+        const hasBundle =
+          user.orders.filter((order) => order.product.id === product.id)
+            .length > 0;
+
+        if (hasBundle) {
+          return ctx.badRequest("You have already purchased this bundle.");
+        }
+
+        for (let i = 0; i < product.bundle.length; i++) {
+          await strapi
+            .service(API_PATH)
+            .gainReward(
+              user,
+              product.bundle[i].type,
+              product.bundle[i].quantity
+            );
+        }
+
+        const newOrder = await strapi
+          .service(API_PATH)
+          .createOrder(user, product, API);
+
+        // BUNDLE_PURCHASE_SUCCESS
+        return newOrder;
+      }
+    },
+
     async notifyMe(ctx) {
       const user = await getUser(ctx.state.user.id);
       const isNotifyMe = ctx.request.body.isNotifyMe;
@@ -1128,139 +1262,6 @@ module.exports = createCoreController(
 
       const data = updateUser(user.id, upload, { claimed_artifacts: true });
       return data;
-    },
-
-    async purchaseProduct(ctx) {
-      const user = await getUser(ctx.state.user.id, {
-        orders: {
-          populate: {
-            product: true,
-          },
-        },
-      });
-
-      const productId = ctx.request.body.id;
-
-      // const payment_env = ctx.request.body.payment_env;
-      const payment_env = "apple";
-
-      const product = await strapi.db.query("api::product.product").findOne({
-        where: {
-          id: productId,
-        },
-        populate: { bundle: true },
-      });
-
-      if (!product) {
-        return ctx.badRequest("Product does not exist.");
-      }
-
-      // validation from PAYMENT GATEWAY - DELETE FAKE DATA
-      const API = {
-        status: "paid",
-        amount: product.amount,
-        payment_env: payment_env,
-      };
-
-      //1. Android Validation
-      if (payment_env === "android") {
-        //validate purchase status -> API
-        // if (okay) => go next, if not return error
-      }
-
-      //2. Apple Validation
-      if (payment_env === "apple") {
-        //validate purchase status -> API
-        // if (okay) => go next, if not return error
-      }
-
-      //3. CASYS CPAY Validation
-      if (payment_env === "cpay") {
-        //validate purchase status -> API ???
-        // if (okay) => go next, if not return error
-      }
-
-      if (
-        payment_env !== "android" &&
-        payment_env !== "apple" &&
-        payment_env !== "cpay"
-      ) {
-        //error no environment or payment gateway
-        return ctx.badRequest("No Payment Method");
-      }
-
-      // IF PAYMENT IS SUCCESSFUL -> EXECUTE LOGIC
-
-      // IF PRODUCT === SUBSCRIPTION
-      if (product.type === "subscription") {
-        if (user.is_subscribed) {
-          return ctx.badRequest("You are already subscribed.");
-        }
-
-        const upload = {
-          is_subscribed: true,
-          subscription_date: Date.now(),
-        };
-
-        const updatedUser = updateUser(user.id, upload);
-
-        const newOrder = await strapi
-          .service("api::usercard.usercard")
-          .createOrder(user, product, API);
-
-        const data = {
-          newOrder,
-          is_subscribed: updatedUser.is_subscribed,
-        };
-
-        // SUBSCRIPTION_PURCHASE_SUCCESS
-        return data;
-      }
-
-      // IF PRODUCT === STARS
-      if (product.type === "gems") {
-        const newOrder = await strapi
-          .service("api::usercard.usercard")
-          .createOrder(user, product, API);
-
-        const upload = { gems: user.gems + product.amount };
-        await updateUser(user.id, upload);
-
-        const data = {
-          newOrder,
-          gems: user.gems + product.amount,
-        };
-        return data;
-        // "GEMS_PURCHASE_SUCCESS"
-      }
-
-      // IF PRODUCT === BUNDLE
-      if (product.type === "bundle") {
-        const hasBundle =
-          user.orders.filter((order) => order.product.id === product.id)
-            .length > 0;
-
-        if (hasBundle) {
-          return ctx.badRequest("You have already purchased this bundle.");
-        }
-
-        for (let i = 0; i < product.bundle.length; i++) {
-          await strapi
-            .service("api::usercard.usercard")
-            .gainReward(
-              user,
-              product.bundle[i].type,
-              product.bundle[i].quantity
-            );
-        }
-
-        const newOrder = await strapi
-          .service("api::usercard.usercard")
-          .createOrder(user, product, API);
-
-        // BUNDLE_PURCHASE_SUCCESS
-        return newOrder;
-      }
     },
 
     async followBuddy(ctx) {
