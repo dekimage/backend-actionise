@@ -1,10 +1,9 @@
 "use strict";
-const fs = require("fs");
-const path = require("path");
 const { createCoreController } = require("@strapi/strapi").factories;
-const { createToken } = require("../../../../utils/functions");
-const bcrypt = require("bcryptjs");
-// @CALC
+const API_PATH = "api::usercard.usercard";
+
+// @CEREBRO
+const STARS_REWARD_FROM_BUDDY_REWARD = 400;
 const maxProgressPerContentType = {
   ideas: 3,
   actions: 5,
@@ -19,6 +18,7 @@ const maxProgressPerContentType = {
   quotes: 5,
   questions: 3,
 };
+
 function singularize(word) {
   switch (word) {
     case "ideas":
@@ -72,54 +72,54 @@ const formatDate = (date) => {
   ].join("-");
 };
 const getUserCard = async (userId, cardId) => {
-  const userCardRelation = await strapi
-    .query("api::usercard.usercard")
+  const usercard = await strapi
+    .query(API_PATH)
     .findOne({ where: { user: userId, card: cardId } });
-  return userCardRelation;
+  return usercard;
 };
 const getUser = async (id, populate = {}) => {
-  const defaultPopulate = {
-    usercards: true,
-    orders: true,
-  };
+  // const defaultPopulate = {
+  //   usercards: true,
+  //   orders: true,
+  // };
   const entry = await strapi.db
     .query("plugin::users-permissions.user")
     .findOne({
       // select: ['title', 'description'],
       where: { id: id },
-      populate: { ...defaultPopulate, ...populate },
+      populate: { ...populate },
     });
   return sanitizeUser(entry);
 };
 const updateUser = async (id, payload, populate = {}) => {
-  const defaultPopulate = { usercards: true, orders: true };
+  // const defaultPopulate = { usercards: true, orders: true };
   const user = await strapi.db.query("plugin::users-permissions.user").update({
     where: { id: id },
     data: payload,
-    populate: { ...defaultPopulate, ...populate },
+    // populate: { ...defaultPopulate, ...populate },
+    populate: { ...populate },
   });
 
   return sanitizeUser(user);
 };
-const getOrCreateUserCard = async (ctx, userId, card) => {
+const getOrCreateUserCard = async (ctx, card) => {
+  const userId = ctx.state.user.id;
   const checkUserCardRelation = await strapi.db
-    .query("api::usercard.usercard")
+    .query(API_PATH)
     .findOne({ where: { user: userId, card: card.id } });
   if (!checkUserCardRelation && card.is_open) {
-    const newUserCardRelation = await strapi.db
-      .query("api::usercard.usercard")
-      .create({
-        data: {
-          user: userId,
-          card: card.id,
-          completed: 0,
-          is_unlocked: true,
-          is_new: true,
-          completed_contents: [],
-          progressMap: {},
-          progressQuest: {},
-        },
-      });
+    const newUserCardRelation = await strapi.db.query(API_PATH).create({
+      data: {
+        user: userId,
+        card: card.id,
+        completed: 0,
+        is_unlocked: true,
+        is_new: true,
+        completed_contents: [],
+        progressMap: {},
+        progressQuest: {},
+      },
+    });
     return newUserCardRelation;
   }
   if (!checkUserCardRelation && !card.is_open) {
@@ -187,6 +187,8 @@ module.exports = createCoreController(
 
       return data;
     },
+    // LEARN/CARD
+    // check security here...
     async updateContentType(ctx) {
       const { action, contentType, contentTypeId, cardId } = ctx.request.body;
 
@@ -228,7 +230,7 @@ module.exports = createCoreController(
         },
       });
 
-      let userCard = await getOrCreateUserCard(ctx, ctx.state.user.id, card);
+      let userCard = await getOrCreateUserCard(ctx, card);
 
       let progressMap = userCard?.progressMap || {};
 
@@ -278,7 +280,7 @@ module.exports = createCoreController(
 
         // SAVE USERCARD - PROGRESSMAP
 
-        await strapi.db.query("api::usercard.usercard").update({
+        await strapi.db.query(API_PATH).update({
           where: { id: userCard.id },
           data: {
             progressMap,
@@ -356,7 +358,7 @@ module.exports = createCoreController(
           progressQuest[contentType].progress++;
         }
 
-        userCard = await strapi.db.query("api::usercard.usercard").update({
+        userCard = await strapi.db.query(API_PATH).update({
           where: { id: userCard.id },
           data: {
             progressMap,
@@ -364,9 +366,7 @@ module.exports = createCoreController(
           },
         });
 
-        await strapi
-          .service("api::usercard.usercard")
-          .objectivesTrigger(user, "energy");
+        await strapi.service(API_PATH).objectivesTrigger(user, "energy");
 
         // ACHIEVEMENTS UPDATE??
 
@@ -387,7 +387,7 @@ module.exports = createCoreController(
 
         // ROLL RANDOM CONTENT TYPE
         const randomReward = await strapi
-          .service("api::usercard.usercard")
+          .service(API_PATH)
           .getRandomUndroppedContent(user);
 
         const { reward, rewardType, error } = randomReward;
@@ -408,7 +408,6 @@ module.exports = createCoreController(
 
         const usercardFromReward = await getOrCreateUserCard(
           ctx,
-          ctx.state.user.id,
           cardFromReward.card
         );
 
@@ -424,15 +423,11 @@ module.exports = createCoreController(
           saved: false,
         };
 
-        strapi.entityService.update(
-          "api::usercard.usercard",
-          usercardFromReward.id,
-          {
-            data: {
-              progressMap: progressMapFromReward,
-            },
-          }
-        );
+        strapi.entityService.update(API_PATH, usercardFromReward.id, {
+          data: {
+            progressMap: progressMapFromReward,
+          },
+        });
 
         // UPDATE DROPPEDCONTENT JSON IN USER ->
         const droppedContent = user.droppedContent || {};
@@ -452,7 +447,7 @@ module.exports = createCoreController(
         const userData = updateUser(user.id, userUpdate);
 
         // UPDATE THE PROGRESS QUEST IN THE ORIGINAL USERCARD ->
-        userCard = await strapi.db.query("api::usercard.usercard").update({
+        userCard = await strapi.db.query(API_PATH).update({
           where: { id: userCard.id },
           data: {
             progressQuest,
@@ -463,18 +458,230 @@ module.exports = createCoreController(
       }
     },
 
-    async updateSettings(ctx) {
+    // fix update/program
+    async updateCard(ctx) {
+      const user = await getUser(ctx.state.user.id, {
+        last_completed_cards: true,
+        last_unlocked_cards: true,
+        artifacts: true,
+      });
+
+      const card_id = parseInt(ctx.request.body.cardId);
+      const action = ctx.request.body.action;
+      const contentIndex = ctx.request.body.contentIndex || 0;
+
+      //@CEREBRO - TYPES
+      if (
+        action !== "complete" &&
+        action !== "unlock" &&
+        action !== "favorite_card" &&
+        action !== "complete_contents"
+      ) {
+        ctx.throw(400, "You can't update the card with unknown intent.");
+      }
+
+      const usercard = await strapi
+        .service(API_PATH)
+        .updateCard(user, card_id, action, ctx, contentIndex);
+
+      console.log(usercard);
+
+      // OMITTING SENSITIVE DATA TODO: REFETCH QUERY -> NO NEED FOR ANY DATA
+      // updatedUserCardRelation["users_permissions_user"] = user.id;
+      // updatedUserCardRelation["updated_by"] = user.id;
+      // updatedUserCardRelation.users_permissions_user.id;
+      return usercard;
+    },
+
+    async rateCard(ctx) {
+      //@CEREBRO
+      const availableRatings = [1, 2, 3, 4, 5, 6, 7, 8];
+      const user = await getUser(ctx.state.user.id);
+      const rating = ctx.request.body.rating;
+      const cardId = parseInt(ctx.request.body.cardId);
+      const feedbackType = ctx.request.body.feedbackType;
+      let upload;
+      let hasRated = false;
+
+      if (feedbackType !== "message" && feedbackType !== "rating") {
+        ctx.throw(400, "invalid input, must be proper feedback type");
+      }
+
+      const usercard = await getUserCard(user.id, cardId);
+
+      if (!usercard) {
+        ctx.throw(400, "invalid card, you don't have this card unlocked yet");
+      }
+      // IF RATING
+      if (feedbackType === "rating") {
+        if (typeof rating !== "number" && !availableRatings.includes(rating)) {
+          ctx.throw(400, "invalid input, must be proper rating number");
+        }
+        upload = {
+          rating: rating,
+        };
+      }
+      // IF MESSAGE
+      if (feedbackType === "message") {
+        upload = {
+          message: rating,
+          isRated: true,
+        };
+      }
+
+      if (!usercard.isRated) {
+        await strapi.service(API_PATH).gainReward(user, "stars", 25);
+        hasRated = true;
+      }
+
+      const usercardUpdated = await strapi.db.query(API_PATH).update({
+        where: { user: user.id, card: cardId },
+        data: upload,
+      });
+
+      return { usercard: usercardUpdated, hasRated, rewards: { stars: 25 } };
+    },
+
+    // TODAY
+    async me(ctx) {
+      const user = ctx.state.user;
+
+      if (!user) {
+        return ctx.badRequest(null, [
+          { messages: [{ id: "No authorization header was found" }] },
+        ]);
+      }
+
+      const artifacts_count = await strapi.db
+        .query("api::artifact.artifact")
+        .count();
+
+      const cards_count = await strapi.db
+        .query("api::card.card")
+        .count({ is_open: false });
+
+      const levelRewards = await strapi.db
+        .query("api::levelreward.levelreward")
+        .findMany({
+          where: {
+            level: {
+              $lt: user.level + 1,
+            },
+          },
+        });
+
+      // Reset User
+      const today = new Date();
+      const isRestarted = formatDate(today) === user.reset_date;
+      if (!isRestarted) {
+        await strapi.service(API_PATH).resetUser(user, today, formatDate);
+      }
+
+      const data = await getUser(user.id, {
+        usercards: {
+          populate: {
+            card: true,
+          },
+        },
+        favorite_cards: {
+          populate: true,
+        },
+        levelrewards: {
+          populate: true,
+        },
+        artifacts: {
+          populate: true,
+        },
+        avatar: {
+          populate: {
+            image: true,
+          },
+        },
+        claimed_artifacts: {
+          populate: true,
+        },
+        actions: {
+          populate: true,
+          populate: {
+            image: true,
+            steps: true,
+            stats: true,
+            card: {
+              populate: {
+                realm: true,
+              },
+            },
+          },
+        },
+
+        orders: true,
+
+        shared_by: true,
+        shared_buddies: {
+          populate: {
+            avatar: {
+              populate: {
+                image: true,
+              },
+            },
+          },
+        },
+        last_unlocked_cards: true,
+        last_completed_cards: true,
+        followers: {
+          populate: {
+            image: true,
+          },
+        },
+        followedBy: true,
+      });
+      const userDataModified = {
+        ...data,
+        artifacts_count,
+        cards_count,
+        levelRewards,
+      };
+      return userDataModified;
+    },
+    // SETTINGS
+    async updateEmailSettings(ctx) {
       const user = await getUser(ctx.state.user.id);
       const { settings } = ctx.request.body;
-      if (!settings) {
-        ctx.throw(400, "invalid input");
+      // Validate the email_preferences object
+      if (typeof email_preferences !== "object" || email_preferences === null) {
+        ctx.throw(400, "Invalid email preferences object");
       }
+
+      const allowedKeys = [
+        "newsletter",
+        "promotions",
+        "content",
+        "updates",
+        "reminders",
+        "unsubscribe",
+      ];
+
+      // Check if the keys in email_preferences are valid
+      for (const key in email_preferences) {
+        if (!allowedKeys.includes(key)) {
+          ctx.throw(400, `Invalid email preferences key: ${key}`);
+        }
+      }
+
+      // Check if the values are booleans
+      for (const key in email_preferences) {
+        if (typeof email_preferences[key] !== "boolean") {
+          ctx.throw(400, `Invalid value for email preference: ${key}`);
+        }
+      }
+
       const payload = {
         email_preferences: settings,
       };
-      const data = updateUser(user.id, payload);
-      console.log(data);
-      return data;
+
+      await updateUser(user.id, payload);
+
+      return { success: true };
     },
 
     async updateUserBasicInfo(ctx) {
@@ -530,58 +737,6 @@ module.exports = createCoreController(
 
       await updateUser(user.id, upload);
       return { success: true };
-    },
-
-    async rateCard(ctx) {
-      const availableRatings = [1, 2, 3, 4, 5, 6, 7, 8];
-      const user = await getUser(ctx.state.user.id);
-      const rating = ctx.request.body.rating;
-      const cardId = parseInt(ctx.request.body.cardId);
-      const feedbackType = ctx.request.body.feedbackType;
-      let upload;
-      let hasRated = false;
-
-      if (feedbackType !== "message" && feedbackType !== "rating") {
-        ctx.throw(400, "invalid input, must be proper feedback type");
-      }
-
-      const usercard = await getUserCard(user.id, cardId);
-
-      if (!usercard) {
-        ctx.throw(400, "invalid card, you don't have this card unlocked yet");
-      }
-      // IF RATING
-      if (feedbackType === "rating") {
-        if (typeof rating !== "number" && !availableRatings.includes(rating)) {
-          ctx.throw(400, "invalid input, must be proper rating number");
-        }
-        upload = {
-          rating: rating,
-        };
-      }
-      // IF MESSAGE
-      if (feedbackType === "message") {
-        upload = {
-          message: rating,
-          isRated: true,
-        };
-      }
-
-      if (!usercard.isRated) {
-        await strapi
-          .service("api::usercard.usercard")
-          .gainReward(user, "stars", 25);
-        hasRated = true;
-      }
-
-      const usercardUpdated = await strapi.db
-        .query("api::usercard.usercard")
-        .update({
-          where: { user: user.id, card: cardId },
-          data: upload,
-        });
-
-      return { usercard: usercardUpdated, hasRated };
     },
 
     async acceptReferral(ctx) {
@@ -649,118 +804,6 @@ module.exports = createCoreController(
       };
     },
 
-    async me(ctx) {
-      const user = ctx.state.user;
-
-      if (!user) {
-        return ctx.badRequest(null, [
-          { messages: [{ id: "No authorization header was found" }] },
-        ]);
-      }
-
-      const artifacts_count = await strapi.db
-        .query("api::artifact.artifact")
-        .count();
-
-      const cards_count = await strapi.db
-        .query("api::card.card")
-        .count({ is_open: false });
-
-      const levelRewards = await strapi.db
-        .query("api::levelreward.levelreward")
-        .findMany({
-          where: {
-            level: {
-              $lt: user.level + 1,
-            },
-          },
-        });
-
-      // Reset User
-      const today = new Date();
-      const isRestarted = formatDate(today) === user.reset_date;
-      if (!isRestarted) {
-        await strapi
-          .service("api::usercard.usercard")
-          .resetUser(user, today, formatDate);
-      }
-
-      const data = await getUser(user.id, {
-        usercards: {
-          populate: {
-            card: true,
-          },
-        },
-        card_tickets: {
-          populate: true,
-        },
-        action_tickets: {
-          populate: true,
-        },
-        favorite_actions: {
-          populate: true,
-        },
-        favorite_cards: {
-          populate: true,
-        },
-        levelrewards: {
-          populate: true,
-        },
-        artifacts: {
-          populate: true,
-        },
-        avatar: {
-          populate: {
-            image: true,
-          },
-        },
-        claimed_artifacts: {
-          populate: true,
-        },
-        actions: {
-          populate: true,
-          populate: {
-            image: true,
-            steps: true,
-            stats: true,
-            card: {
-              populate: {
-                realm: true,
-              },
-            },
-          },
-        },
-
-        orders: true,
-
-        shared_by: true,
-        shared_buddies: {
-          populate: {
-            avatar: {
-              populate: {
-                image: true,
-              },
-            },
-          },
-        },
-        last_unlocked_cards: true,
-        last_completed_cards: true,
-        followers: {
-          populate: {
-            image: true,
-          },
-        },
-        followedBy: true,
-      });
-      const userDataModified = {
-        ...data,
-        artifacts_count,
-        cards_count,
-        levelRewards,
-      };
-      return userDataModified;
-    },
-
     async getRandomCard(ctx) {
       // 1. get all cards
       function extractCardsIds(usercards) {
@@ -807,42 +850,6 @@ module.exports = createCoreController(
       return randomCard;
       // 2. filter by user has it unlocked.
       // 3. return random card.
-    },
-
-    async updateCard(ctx) {
-      const user = await getUser(ctx.state.user.id, {
-        last_completed_cards: true,
-        last_unlocked_cards: true,
-        actions: true,
-        favorite_actions: true,
-        favorite_cards: true,
-        artifacts: true,
-      });
-
-      const card_id = parseInt(ctx.request.body.id);
-      const action = ctx.request.body.action;
-      const contentIndex = ctx.request.body.contentIndex || 0;
-
-      if (
-        action !== "complete" &&
-        action !== "unlock" &&
-        action !== "favorite_card" &&
-        action !== "complete_action" &&
-        action !== "favorite_action" &&
-        action !== "complete_contents"
-      ) {
-        ctx.throw(400, "You can't update the card with unknown intent.");
-      }
-
-      let updatedUserCardRelation = await strapi
-        .service("api::usercard.usercard")
-        .updateCard(user, card_id, action, ctx, contentIndex);
-
-      // OMITTING SENSITIVE DATA TODO: REFETCH QUERY -> NO NEED FOR ANY DATA
-      // updatedUserCardRelation["users_permissions_user"] = user.id;
-      // updatedUserCardRelation["updated_by"] = user.id;
-      // updatedUserCardRelation.users_permissions_user.id;
-      return updatedUserCardRelation;
     },
 
     async updateTutorial(ctx) {
