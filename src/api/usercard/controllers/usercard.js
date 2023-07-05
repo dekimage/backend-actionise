@@ -643,66 +643,6 @@ module.exports = createCoreController(
       };
       return userDataModified;
     },
-    // SETTINGS
-    async updateEmailSettings(ctx) {
-      const user = await getUser(ctx.state.user.id);
-      const { settings } = ctx.request.body;
-      // Validate the email_preferences object
-      if (typeof email_preferences !== "object" || email_preferences === null) {
-        ctx.throw(400, "Invalid email preferences object");
-      }
-
-      const allowedKeys = [
-        "newsletter",
-        "promotions",
-        "content",
-        "updates",
-        "reminders",
-        "unsubscribe",
-      ];
-
-      // Check if the keys in email_preferences are valid
-      for (const key in email_preferences) {
-        if (!allowedKeys.includes(key)) {
-          ctx.throw(400, `Invalid email preferences key: ${key}`);
-        }
-      }
-
-      // Check if the values are booleans
-      for (const key in email_preferences) {
-        if (typeof email_preferences[key] !== "boolean") {
-          ctx.throw(400, `Invalid value for email preference: ${key}`);
-        }
-      }
-
-      const payload = {
-        email_preferences: settings,
-      };
-
-      await updateUser(user.id, payload);
-
-      return { success: true };
-    },
-
-    async updateUserBasicInfo(ctx) {
-      const user = await getUser(ctx.state.user.id);
-      const { value, inputName } = ctx.request.body;
-      if (!value || !inputName) {
-        ctx.throw(400, "invalid input");
-      }
-      if (
-        inputName !== "username" &&
-        inputName !== "age" &&
-        inputName !== "gender"
-      ) {
-        ctx.throw(400, "invalid input");
-      }
-      const payload = {
-        [inputName]: value,
-      };
-      const data = updateUser(user.id, payload);
-      return data;
-    },
 
     async resetUser(ctx) {
       const user = ctx.state.user;
@@ -765,43 +705,6 @@ module.exports = createCoreController(
 
       await updateUser(sharedUserId, sharedUpload);
       return { success: true };
-    },
-
-    async sendFeatureMail(ctx) {
-      const { details, subject } = ctx.request.body;
-
-      // Check if user has exceeded suggestion limit for the day
-      const user = ctx.state.user;
-      const name = user.username;
-      const email = user.email;
-      const suggestionLimit = 25; // maximum number of suggestions
-
-      const suggestionCount = user.mail_send_count || 0;
-
-      if (suggestionCount >= suggestionLimit) {
-        return ctx.badRequest(
-          `You have exceeded the suggestion limit of ${suggestionLimit}. Please contact us at our email contact@actionise.com if you wish this limit to reset.`
-        );
-      }
-
-      // Send email with user's input details using SendGrid API
-
-      await strapi.plugins["email"].services.email.send({
-        to: "contact@actionise.com",
-        subject: subject || "New email",
-        text: `Name: ${name}\nEmail: ${email}\nDetails: ${details}`,
-      });
-
-      // Update user's suggestion count and last suggestion date
-      const upload = {
-        mail_send_count: suggestionCount + 1,
-      };
-      await updateUser(user.id, upload);
-
-      // Return success message
-      return {
-        message: "Feature suggestion or bug report submitted successfully.",
-      };
     },
 
     async getRandomCard(ctx) {
@@ -1416,23 +1319,6 @@ module.exports = createCoreController(
       return sanitizedData;
     },
 
-    async cancelSubscription(ctx) {
-      const user = await getUser(ctx.state.user.id);
-
-      const isUnsubscribed = user.is_subscription_cancelled;
-      const isPremium = user.is_subscribed;
-
-      if (isUnsubscribed || !isPremium) {
-        return ctx.badRequest(
-          "Your subscription is cancelled or doesn't exist."
-        );
-      }
-
-      const upload = { is_subscription_cancelled: true };
-      const data = await updateUser(user.id, upload);
-      return data.is_unsubscribed;
-    },
-
     async saveAvatar(ctx) {
       const user = await getUser(ctx.state.user.id);
       const avatarId = ctx.request.body.avatarId;
@@ -1453,6 +1339,131 @@ module.exports = createCoreController(
       };
       const data = updateUser(user.id, upload);
       return data;
+    },
+    // SETTINGS
+    async updateEmailSettings(ctx) {
+      const user = await getUser(ctx.state.user.id);
+      const { settings } = ctx.request.body;
+      // Validate the email_preferences object
+      if (typeof email_preferences !== "object" || email_preferences === null) {
+        ctx.throw(400, "Invalid email preferences object");
+      }
+
+      const allowedKeys = [
+        "newsletter",
+        "promotions",
+        "content",
+        "updates",
+        "reminders",
+        "unsubscribe",
+      ];
+
+      // Check if the keys in email_preferences are valid
+      for (const key in email_preferences) {
+        if (!allowedKeys.includes(key)) {
+          ctx.throw(400, `Invalid email preferences key: ${key}`);
+        }
+      }
+
+      // Check if the values are booleans
+      for (const key in email_preferences) {
+        if (typeof email_preferences[key] !== "boolean") {
+          ctx.throw(400, `Invalid value for email preference: ${key}`);
+        }
+      }
+
+      const payload = {
+        email_preferences: settings,
+      };
+
+      await updateUser(user.id, payload);
+
+      return { success: true };
+    },
+
+    async updateUserBasicInfo(ctx) {
+      const user = await getUser(ctx.state.user.id);
+      const { value, inputName } = ctx.request.body;
+      if (!value || !inputName) {
+        ctx.throw(400, "invalid input");
+      }
+      if (
+        inputName !== "username" &&
+        inputName !== "age" &&
+        inputName !== "gender"
+      ) {
+        ctx.throw(400, "invalid input");
+      }
+      if (inputName === "age" && typeof value !== "number") {
+        ctx.throw(400, "invalid input");
+      }
+      if (
+        inputName == "username" ||
+        (inputName == "gender" && typeof value !== "string")
+      ) {
+        ctx.throw(400, "invalid input");
+      }
+
+      const payload = {
+        [inputName]: value,
+      };
+      await updateUser(user.id, payload);
+      return { success: true };
+    },
+
+    async sendFeatureMail(ctx) {
+      const { details, subject } = ctx.request.body;
+
+      // Check if user has exceeded suggestion limit for the day
+      const user = ctx.state.user;
+      const name = user.username;
+      const email = user.email;
+      //@CEREBRO
+      const suggestionLimit = 25; // maximum number of suggestions
+
+      const suggestionCount = user.mail_send_count || 0;
+
+      if (suggestionCount >= suggestionLimit) {
+        return ctx.badRequest(
+          `You have exceeded the suggestion limit of ${suggestionLimit}. Please contact us at our email contact@actionise.com if you wish this limit to reset.`
+        );
+      }
+
+      // Send email with user's input details using SendGrid API
+
+      await strapi.plugins["email"].services.email.send({
+        to: "contact@actionise.com",
+        subject: subject || "New email",
+        text: `Name: ${name}\nEmail: ${email}\nDetails: ${details}`,
+      });
+
+      // Update user's suggestion count and last suggestion date
+      const upload = {
+        mail_send_count: suggestionCount + 1,
+      };
+      await updateUser(user.id, upload);
+
+      // Return success message
+      return {
+        message: "Feature suggestion or bug report submitted successfully.",
+      };
+    },
+
+    async cancelSubscription(ctx) {
+      const user = await getUser(ctx.state.user.id);
+
+      const isUnsubscribed = user.is_subscription_cancelled;
+      const isPremium = user.is_subscribed;
+
+      if (isUnsubscribed || !isPremium) {
+        return ctx.badRequest(
+          "Your subscription is cancelled or doesn't exist."
+        );
+      }
+
+      const upload = { is_subscription_cancelled: true };
+      const data = await updateUser(user.id, upload);
+      return data.is_unsubscribed;
     },
   })
 );
