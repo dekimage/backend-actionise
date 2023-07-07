@@ -501,6 +501,35 @@ module.exports = createCoreController(
       return usercard;
     },
 
+    async buyCardTicket(ctx) {
+      const user = await getUser(ctx.state.user.id, {
+        card_tickets: true,
+      });
+
+      if (user.energy <= 0) {
+        ctx.throw(400, "You don't have enough energy to play this card.");
+      }
+
+      const card_id = parseInt(ctx.request.body.cardId);
+
+      const card = await strapi.db.query("api::card.card").findOne({
+        where: {
+          id: card_id,
+        },
+      });
+
+      await getOrCreateUserCard(ctx, card);
+
+      const upload = {
+        card_tickets: [...user.card_tickets, card_id],
+        energy: user.energy - 1,
+      };
+
+      await updateUser(user.id, upload);
+
+      return { success: true };
+    },
+
     async rateCard(ctx) {
       //@CEREBRO
       const availableRatings = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -606,6 +635,9 @@ module.exports = createCoreController(
           },
         },
         claimed_artifacts: {
+          populate: true,
+        },
+        card_tickets: {
           populate: true,
         },
         actions: {

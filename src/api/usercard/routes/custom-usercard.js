@@ -56,6 +56,12 @@ module.exports = {
       path: "/usercard/reset-user",
       handler: "usercard.resetUser",
     },
+
+    {
+      method: "PUT",
+      path: "/usercard/buy-card-ticket",
+      handler: "usercard.buyCardTicket",
+    },
     {
       method: "PUT",
       path: "/usercard/save-avatar",
