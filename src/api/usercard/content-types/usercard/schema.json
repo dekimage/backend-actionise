@@ -23,17 +23,9 @@
       "relation": "oneToOne",
       "target": "api::card.card"
     },
-    "user_name": {
-      "type": "string",
-      "private": true
-    },
     "level": {
       "type": "integer",
       "default": 1
-    },
-    "quantity": {
-      "default": 1,
-      "type": "integer"
     },
     "completed": {
       "type": "integer",
@@ -58,34 +50,9 @@
       "type": "integer",
       "default": 0
     },
-    "league": {
-      "type": "enumeration",
-      "enum": [
-        "unranked",
-        "bronze",
-        "silver",
-        "gold",
-        "platinum",
-        "diamond",
-        "grandmaster"
-      ],
-      "default": "unranked"
-    },
-    "completed_progress_max": {
-      "type": "integer",
-      "default": 4
-    },
-    "completed_contents": {
-      "type": "json"
-    },
     "rating": {
       "type": "integer",
       "default": 0
-    },
-    "card_name": {
-      "type": "string",
-      "private": true,
-      "default": "null"
     },
     "message": {
       "type": "text"
