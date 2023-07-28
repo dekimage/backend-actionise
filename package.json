@@ -7,8 +7,7 @@
     "develop": "strapi develop",
     "start": "strapi start",
     "build": "strapi build",
-    "strapi": "strapi",
-    "heroku-postbuild": "npm run build && npm run start"
+    "strapi": "strapi"
   },
   "dependencies": {
     "@strapi/plugin-documentation": "^4.1.12",
@@ -28,6 +27,10 @@
   },
   "strapi": {
     "uuid": "6a7c423b-754e-40e8-a5ce-96a478806a2d"
+  },
+  "engines": {
+    "node": ">=12.x.x <=16.x.x",
+    "npm": ">=6.0.0"
   },
   "license": "MIT"
 }
