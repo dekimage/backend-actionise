@@ -362,7 +362,7 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
       }
     }
 
-    // 3. ========== Trigger Favorite ON/OFF
+    // 3. ========== Trigger Favorite ON/OFF .
     if (action === API_ACTIONS.updateCard.favorite) {
       const update = {
         is_favorite: !userCardRelation.is_favorite,
