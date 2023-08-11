@@ -71,6 +71,14 @@ $RECYCLE.BIN/
 *.sqlite
 *.sqlite3
 
+# PostgreSQL
+*.latest.dump
+*.dump
+*.sql
+*.log
+pgdata/
+/my_local_dbname/
+
 
 ############################
 # Misc.
