@@ -10,11 +10,13 @@ const {
   API_ACTIONS,
 } = require("../../../../utils/constants.js");
 
+
 const { FUNCTIONS, STRAPI } = require("../../../../utils/functions.js");
 
 const { createCoreService } = require("@strapi/strapi").factories;
 
 module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
+
   sendEmailTemplate: async (template) => {
     const defaultTemplate = "welcome-email";
 
@@ -46,6 +48,7 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
 
     return { success: true };
   },
+
   // reset-user on daily/weekly basis
   resetUser: async (user, today) => {
     const { resetWeekDate, isWeekRestarted } = FUNCTIONS.calculateWeekReset(
@@ -59,6 +62,7 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
           ? CONFIG.DEFAULT_ENERGY
           : user.energy,
       reset_date: FUNCTIONS.formatDate(today),
+
       reset_week_date: resetWeekDate,
       objectives_json: await FUNCTIONS.resetUserObjectives(
         user.objectives_json,
@@ -73,6 +77,7 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
     const xpLimit = FUNCTIONS.getXpLimit(user.level);
 
     const isLevelnew = user.xp + xpGained >= xpLimit;
+
 
     if (isLevelnew) {
       payload = {
@@ -104,7 +109,9 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
     let artifact = false;
     let starsGained; // for return to frontend only
 
+
     const xpGained = CONFIG.XP_PER_OBJECTIVE[objective.time_type];
+
 
     const xpRewards = await strapi
       .service(CONFIG.API_PATH)
@@ -137,7 +144,9 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
       };
       starsGained = randomStars;
 
+
       const chanceToGainArtifact = CONFIG.CHANCE_TO_GAIN_ARTIFACT;
+
       const randomInt = Math.random();
       const shouldGainArtifact = randomInt <= chanceToGainArtifact;
 
@@ -147,12 +156,14 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
           .gainArtifact(user, 0, true);
       }
     }
+
     await STRAPI.updateUser(user.id, payload);
 
     return {
       xp: xpRewards,
       stars: starsGained,
       artifact: artifact,
+
     };
   },
 
@@ -216,7 +227,9 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
 
     const upload = { artifacts: [...user.artifacts, artifactId] };
 
+
     await STRAPI.updateUser(user.id, upload, { artifacts: true });
+
 
     const artifact = await strapi.db.query("api::artifact.artifact").findOne({
       where: {
@@ -268,7 +281,9 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
     }
 
     // 1 ======= UNLOCK A CARD
+
     if (action === API_ACTIONS.updateCard.unlock) {
+
       const canUnlock = user.stars >= card.cost;
       if (!canUnlock) {
         return ctx.throw(
@@ -277,11 +292,14 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
         );
       }
 
+
       const usercard = await STRAPI.getOrCreateUserCard(ctx, card, true);
+
 
       const payload = {
         stars: user.stars - card.cost,
       };
+
 
       await STRAPI.updateUser(user.id, payload);
 
@@ -289,10 +307,12 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
         .service("api::usercard.usercard")
         .achievementTrigger(user, TYPES.ARTIFACT_TRIGGERS.cardsUnlock);
 
+
       console.log("artifactData", artifactData);
 
       return {
         usercard: usercard,
+
         rewards: artifactData.artifactData && {
           artifact: artifactData.artifactData,
         },
@@ -300,6 +320,7 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
     }
 
     const userCardRelation = await STRAPI.getOrCreateUserCard(ctx, card);
+
 
     // 2. ========== COMPLETE A CARD:
     if (action === API_ACTIONS.updateCard.complete) {
@@ -316,9 +337,11 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
           new_last_completed.shift();
         }
         const payload = { last_completed_cards: new_last_completed };
+
         await STRAPI.updateUser(user.id, payload);
 
         const update = {
+
           completed_at: Date.now(),
           ...(!isProgramMastered
             ? {
@@ -387,14 +410,19 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
       const userUpdate = {
         favorite_cards: newFavoriteCards,
       };
+
       await STRAPI.updateUser(user.id, userUpdate);
+
 
       return { usercard: data };
     }
   },
 
   achievementTrigger: async (user, requirement) => {
+
     let user_stats = user.stats || USER.DEFAULT_USER_STATS;
+
+
 
     if (!CONFIG.ARTIFACTS_TABLE[requirement]) {
       console.log("wrong type name??");
@@ -466,9 +494,11 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
   },
 
   gainCard: async (ctx, card) => {
+
     const usercard = await STRAPI.getOrCreateUserCard(ctx, card, true);
     return { card, usercard };
   },
+
 
   getRandomUndroppedContent: async (ctx, user) => {
     const cardIds = user.unlocked_cards?.ids || [];
