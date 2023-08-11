@@ -1,6 +1,9 @@
 module.exports = ({ env }) => {
   if (env("NODE_ENV") === "production") {
     return {
+      documentation: {
+        enabled: false,
+      },
       upload: {
         config: {
           provider: "aws-s3",
@@ -35,6 +38,9 @@ module.exports = ({ env }) => {
   return {
     "strapi-google-auth": {
       enabled: true,
+    },
+    documentation: {
+      enabled: false,
     },
     email: {
       config: {
