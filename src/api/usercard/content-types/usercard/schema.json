@@ -94,6 +94,9 @@
     },
     "progressQuest": {
       "type": "json"
+    },
+    "user_name": {
+      "type": "string"
     }
   }
 }
