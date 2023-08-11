@@ -1,19 +1,6 @@
 "use strict";
 
-// const { C_TYPES } = require("../utils/constants");
-const CONTENT_MAP = {
-  ideas: { max: 3, color: "#bde0fe", single: "idea" },
-  exercises: { max: 5, color: "#f4a261", single: "exercise" },
-  stories: { max: 1, color: "#80ed99", single: "story" },
-  faqs: { max: 2, color: "#415a77", single: "faq" },
-  casestudies: { max: 1, color: "#d4a373", single: "casestudy" },
-  tips: { max: 3, color: "#766153", single: "tip" },
-  metaphores: { max: 3, color: "#ecf39e", single: "metaphore" },
-  experiments: { max: 2, color: "#f7ede2", single: "experiment" },
-  expertopinions: { max: 3, color: "#e07a5f", single: "expertopinion" },
-  quotes: { max: 5, color: "#f2cc8f", single: "quote" },
-  questions: { max: 3, color: "#3d405b", single: "question" },
-};
+const { C_TYPES } = require("../utils/constants");
 
 const createNewUserObjectives = async () => {
   //arr = objectives real
@@ -45,10 +32,10 @@ function createModelsArrayFromContentMap() {
   const modelsArray = [];
 
   // Iterate over each content type in the CONTENT_MAP
-  for (const contentType in CONTENT_MAP) {
-    if (CONTENT_MAP.hasOwnProperty(contentType)) {
+  for (const contentType in C_TYPES.CONTENT_MAP) {
+    if (C_TYPES.CONTENT_MAP.hasOwnProperty(contentType)) {
       // Get the single content string from the content type information
-      const content = CONTENT_MAP[contentType].single;
+      const content = C_TYPES.CONTENT_MAP[contentType].single;
 
       // Create the model string and add it to the modelsArray
       const modelString = `api::${content}.${content}`;

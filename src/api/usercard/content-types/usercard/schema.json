@@ -23,10 +23,6 @@
       "relation": "oneToOne",
       "target": "api::card.card"
     },
-    "user_name": {
-      "type": "string",
-      "private": true
-    },
     "level": {
       "type": "integer",
       "default": 1
