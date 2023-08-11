@@ -193,9 +193,6 @@
       "relation": "manyToOne",
       "target": "api::expansion.expansion",
       "inversedBy": "cards"
-    },
-    "relationCount": {
-      "type": "json"
     }
   }
 }
