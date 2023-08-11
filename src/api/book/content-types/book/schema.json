@@ -51,12 +51,6 @@
       "target": "api::course.course",
       "inversedBy": "books"
     },
-    "problems": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::problem.problem",
-      "mappedBy": "books"
-    },
     "affiliate_link": {
       "type": "string"
     },

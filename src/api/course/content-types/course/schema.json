@@ -15,12 +15,6 @@
     "name": {
       "type": "string"
     },
-    "problems": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::problem.problem",
-      "mappedBy": "course"
-    },
     "description": {
       "type": "text"
     },

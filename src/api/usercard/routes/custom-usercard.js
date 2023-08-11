@@ -20,11 +20,7 @@ module.exports = {
       path: "/usercard/update-user-basic-info",
       handler: "usercard.updateUserBasicInfo",
     },
-    {
-      method: "PUT",
-      path: "/usercard/reset-user",
-      handler: "usercard.resetUser",
-    },
+
     {
       method: "PUT",
       path: "/usercard/notify-me",
@@ -55,7 +51,21 @@ module.exports = {
       path: "/usercard/claim-artifact",
       handler: "usercard.claimArtifact",
     },
-
+    {
+      method: "PUT",
+      path: "/usercard/reset-user",
+      handler: "usercard.resetUser",
+    },
+    {
+      method: "GET",
+      path: "/usercard/refresh-user",
+      handler: "usercard.refreshUser",
+    },
+    {
+      method: "PUT",
+      path: "/usercard/buy-card-ticket",
+      handler: "usercard.buyCardTicket",
+    },
     {
       method: "PUT",
       path: "/usercard/save-avatar",
@@ -104,8 +114,8 @@ module.exports = {
     },
     {
       method: "PUT",
-      path: "/usercard/follow-buddy",
-      handler: "usercard.followBuddy",
+      path: "/usercard/delete-account",
+      handler: "usercard.deleteAccount",
     },
   ],
 };

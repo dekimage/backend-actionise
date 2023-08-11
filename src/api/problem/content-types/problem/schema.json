@@ -39,40 +39,10 @@
       "type": "integer",
       "default": 1
     },
-    "problems_related": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::problem.problem",
-      "inversedBy": "problems_from"
-    },
-    "problems_from": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::problem.problem",
-      "inversedBy": "problems_related"
-    },
-    "actions": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::action.action",
-      "inversedBy": "problems"
-    },
-    "course": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::course.course",
-      "inversedBy": "problems"
-    },
     "realm": {
       "type": "relation",
       "relation": "manyToOne",
       "target": "api::realm.realm",
-      "inversedBy": "problems"
-    },
-    "books": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::book.book",
       "inversedBy": "problems"
     },
     "cards": {

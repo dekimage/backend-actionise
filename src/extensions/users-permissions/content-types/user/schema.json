@@ -81,10 +81,6 @@
       "target": "api::order.order",
       "mappedBy": "user"
     },
-    "gems": {
-      "type": "integer",
-      "default": 0
-    },
     "stars": {
       "type": "integer",
       "default": 0
@@ -206,11 +202,6 @@
       "type": "integer",
       "default": 1
     },
-    "favorite_actions": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::action.action"
-    },
     "artifacts": {
       "type": "relation",
       "relation": "oneToMany",
@@ -223,11 +214,6 @@
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::card.card"
-    },
-    "last_completed_actions": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::action.action"
     },
     "claimed_artifacts": {
       "type": "relation",

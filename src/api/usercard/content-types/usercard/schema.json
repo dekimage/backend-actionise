@@ -23,9 +23,9 @@
       "relation": "oneToOne",
       "target": "api::card.card"
     },
-    "quantity": {
-      "default": 1,
-      "type": "integer"
+    "level": {
+      "type": "integer",
+      "default": 1
     },
     "completed": {
       "type": "integer",
@@ -46,12 +46,9 @@
       "type": "boolean",
       "default": false
     },
-    "completed_progress_max": {
+    "glory_points": {
       "type": "integer",
-      "default": 4
-    },
-    "completed_contents": {
-      "type": "json"
+      "default": 0
     },
     "rating": {
       "type": "integer",
