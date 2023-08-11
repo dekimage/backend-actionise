@@ -117,30 +117,30 @@ module.exports = {
    * This gives you an opportunity to set up your data model,
    * run jobs, or perform some special logic.
    */
-  // bootstrap({ strapi }) {
-  //   strapi.db.lifecycles.subscribe({
-  //     // models: ["api::idea.idea", "api::exercise.exercise"],
-  //     models: createModelsArrayFromContentMap(),
-  //     async afterCreate(event) {
-  //       if (event.model.singularName === "user") {
-  //         await afterCreate(event.result);
-  //       } else {
-  //         const card = event.result.card;
-  //         await updateCardRelationCount(card, event.model.tableName, 1);
-  //       }
-  //     },
-  //     async beforeDelete(event) {
-  //       if (event.model.singularName === "user") {
-  //         return;
-  //       }
-  //       const ids = [event.params.where.id];
-  //       const cards = await strapi.db.query("api::card.card").findMany({
-  //         where: { [event.model.tableName]: { id: { $in: ids } } },
-  //       });
-  //       console.log(cards[0]);
-  //       await updateCardRelationCount(cards[0], event.model.tableName, -1);
-  //     },
-  //   });
-  // },
+  bootstrap({ strapi }) {
+    strapi.db.lifecycles.subscribe({
+      // models: ["api::idea.idea", "api::exercise.exercise"],
+      models: createModelsArrayFromContentMap(),
+      async afterCreate(event) {
+        if (event.model.singularName === "user") {
+          await afterCreate(event.result);
+        } else {
+          const card = event.result.card;
+          await updateCardRelationCount(card, event.model.tableName, 1);
+        }
+      },
+      async beforeDelete(event) {
+        if (event.model.singularName === "user") {
+          return;
+        }
+        const ids = [event.params.where.id];
+        const cards = await strapi.db.query("api::card.card").findMany({
+          where: { [event.model.tableName]: { id: { $in: ids } } },
+        });
+        console.log(cards[0]);
+        await updateCardRelationCount(cards[0], event.model.tableName, -1);
+      },
+    });
+  },
 };
 ``;
