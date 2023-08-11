@@ -56,7 +56,11 @@ module.exports = {
       path: "/usercard/reset-user",
       handler: "usercard.resetUser",
     },
-
+    {
+      method: "GET",
+      path: "/usercard/refresh-user",
+      handler: "usercard.refreshUser",
+    },
     {
       method: "PUT",
       path: "/usercard/buy-card-ticket",
@@ -110,8 +114,8 @@ module.exports = {
     },
     {
       method: "PUT",
-      path: "/usercard/follow-buddy",
-      handler: "usercard.followBuddy",
+      path: "/usercard/delete-account",
+      handler: "usercard.deleteAccount",
     },
   ],
 };

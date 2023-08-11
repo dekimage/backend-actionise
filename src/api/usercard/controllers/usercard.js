@@ -195,6 +195,27 @@ module.exports = createCoreController(
 
       return data;
     },
+
+    async refreshUser(ctx) {
+      const user = ctx.state.user;
+      if (!user) {
+        return ctx.badRequest(null, [
+          { messages: [{ id: "No authorization header was found" }] },
+        ]);
+      }
+      const data = await STRAPI.getUser(user.id, {
+        avatar: {
+          populate: {
+            image: true,
+          },
+        },
+        card_tickets: {
+          populate: true,
+        },
+      });
+      return data;
+    },
+
     // LEARN/CARD
     // check security here...
     async updateContentType(ctx) {
@@ -1450,6 +1471,21 @@ module.exports = createCoreController(
       const upload = { is_subscription_cancelled: true };
       const data = await updateUser(user.id, upload);
       return data.is_unsubscribed;
+    },
+    async deleteAccount(ctx) {
+      const userId = ctx.state.user.id;
+      //delete all usercards WARNING!!!
+      // WORKAROUND FOR STRAPI QUERY FIRST (find all) THEN DELETE (delete many) -> https://github.com/strapi/strapi/issues/11998
+      const toDelete = await strapi.db
+        .query(CONFIG.API_PATH)
+        .findMany({ where: { user: userId } });
+      await strapi.db
+        .query(CONFIG.API_PATH)
+        .deleteMany({ where: { id: { $in: toDelete.map(({ id }) => id) } } });
+      await strapi.db
+        .query("plugin::users-permissions.user")
+        .delete({ where: { id: userId } });
+      return { message: "Account deleted" };
     },
   })
 );
