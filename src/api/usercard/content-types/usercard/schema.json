@@ -78,11 +78,6 @@
       "type": "integer",
       "default": 0
     },
-    "card_name": {
-      "type": "string",
-      "private": true,
-      "default": "null"
-    },
     "message": {
       "type": "text"
     },

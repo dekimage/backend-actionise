@@ -17,6 +17,9 @@ Icon
 
 *~
 
+pg_restore
+config/database.js
+
 
 ############################
 # Windows
