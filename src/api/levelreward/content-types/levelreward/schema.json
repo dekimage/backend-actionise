@@ -36,6 +36,12 @@
       "relation": "oneToOne",
       "target": "api::artifact.artifact",
       "mappedBy": "levelreward"
+    },
+    "card": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::card.card",
+      "inversedBy": "levelreward"
     }
   }
 }

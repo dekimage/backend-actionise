@@ -81,10 +81,6 @@
       "target": "api::order.order",
       "mappedBy": "user"
     },
-    "gems": {
-      "type": "integer",
-      "default": 0
-    },
     "stars": {
       "type": "integer",
       "default": 0
@@ -148,7 +144,7 @@
       "relation": "oneToMany",
       "target": "api::card.card"
     },
-    "is_subscribed": {
+    "pro": {
       "type": "boolean",
       "default": false
     },
@@ -179,13 +175,6 @@
     "reset_date": {
       "type": "string"
     },
-    "is_subscription_cancelled": {
-      "type": "boolean",
-      "default": false
-    },
-    "subscription_date": {
-      "type": "string"
-    },
     "xp": {
       "type": "integer",
       "default": 0
@@ -207,10 +196,6 @@
       "relation": "oneToMany",
       "target": "api::action.action",
       "mappedBy": "user"
-    },
-    "tutorial_step": {
-      "type": "integer",
-      "default": 1
     },
     "favorite_actions": {
       "type": "relation",
@@ -340,6 +325,12 @@
       "target": "api::tip.tip"
     },
     "droppedContent": {
+      "type": "json"
+    },
+    "tutorial": {
+      "type": "json"
+    },
+    "faq_rewards": {
       "type": "json"
     }
   }

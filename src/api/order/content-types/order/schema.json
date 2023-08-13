@@ -39,6 +39,12 @@
         "apple",
         "cpay"
       ]
+    },
+    "transaction_details": {
+      "type": "json"
+    },
+    "payment_details": {
+      "type": "json"
     }
   }
 }

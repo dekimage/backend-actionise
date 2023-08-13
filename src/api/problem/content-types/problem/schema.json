@@ -39,18 +39,6 @@
       "type": "integer",
       "default": 1
     },
-    "problems_related": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::problem.problem",
-      "inversedBy": "problems_from"
-    },
-    "problems_from": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::problem.problem",
-      "inversedBy": "problems_related"
-    },
     "actions": {
       "type": "relation",
       "relation": "manyToMany",

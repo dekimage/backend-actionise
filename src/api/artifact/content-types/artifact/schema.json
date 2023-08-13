@@ -74,9 +74,6 @@
       "relation": "oneToOne",
       "target": "api::streakreward.streakreward",
       "inversedBy": "artifact"
-    },
-    "short_name": {
-      "type": "string"
     }
   }
 }

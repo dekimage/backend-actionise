@@ -196,6 +196,12 @@
     },
     "relationCount": {
       "type": "json"
+    },
+    "levelreward": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::levelreward.levelreward",
+      "inversedBy": "card"
     }
   }
 }
