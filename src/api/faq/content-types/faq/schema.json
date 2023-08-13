@@ -4,7 +4,8 @@
   "info": {
     "singularName": "faq",
     "pluralName": "faqs",
-    "displayName": "Faq"
+    "displayName": "Faq",
+    "description": ""
   },
   "options": {
     "draftAndPublish": false
@@ -21,15 +22,15 @@
       "type": "integer",
       "default": 1
     },
-    "isOpen": {
-      "type": "boolean",
-      "default": true
-    },
-    "card": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::card.card",
-      "inversedBy": "faqs"
+    "image": {
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ],
+      "type": "media",
+      "multiple": false
     }
   }
 }

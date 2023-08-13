@@ -134,12 +134,6 @@
       "target": "api::idea.idea",
       "mappedBy": "card"
     },
-    "faqs": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::faq.faq",
-      "mappedBy": "card"
-    },
     "expertopinions": {
       "type": "relation",
       "relation": "oneToMany",
