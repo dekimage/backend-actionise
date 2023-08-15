@@ -4,6 +4,7 @@ const CONFIG = {
   XP_FROM_QUEST: 50,
   STARS_REWARD_FROM_RATING: 25,
   STARS_REWARD_FROM_BUDDY_REWARD: 400,
+  STARS_REWARD_FROM_FAQ: 10,
   RARITY_TABLE: {
     common: 60,
     rare: 85,
@@ -34,6 +35,7 @@ const CONFIG = {
   MAX_USER_FEEDBACK: 25,
   EMAIL: "contact@actionise.com",
   DEFAULT_SUBJECT: "New Feedback",
+  ALLOWED_EMAILS: ["dejan.gavrilovikk@gmail.com", "denar@gmail.com"],
 };
 
 const TYPES = {
@@ -165,75 +167,17 @@ const C_TYPES = {
     saved: false,
     isNew: true,
   },
-  singularize: (word) => {
-    switch (word) {
-      case "ideas":
-        return "idea";
-      case "exercises":
-        return "exercise";
-      case "stories":
-        return "story";
-      case "faqs":
-        return "faq"; // this is already singular
-      case "program":
-        return "program"; // this is already singular
-      case "casestudy":
-        return "casestudy"; // this is already singular
-      case "tips":
-        return "tip";
-      case "metaphores":
-        return "metaphore";
-      case "experiments":
-        return "experiment";
-      case "expertopinions":
-        return "expertopinion";
-      case "quotes":
-        return "quote";
-      case "questions":
-        return "question";
-      default:
-        return false;
-    }
-  },
-  CONTENT_TYPES: [
-    "ideas",
-    "exercises",
-    "stories",
-    "tips",
-    "faqs",
-    "quotes",
-    "casestudy",
-    "metaphores",
-    "expertopinions",
-    "questions",
-    "experiments",
-  ],
-  MAX_PROGRESS_PER_C_TYPE: {
-    ideas: 3,
-    exercises: 5,
-    stories: 1,
-    faqs: 2,
-    program: 3,
-    casestudies: 1,
-    tips: 3,
-    metaphores: 3,
-    experiments: 2,
-    expertopinions: 3,
-    quotes: 5,
-    questions: 3,
-  },
   CONTENT_MAP: {
     ideas: { max: 3, color: "#bde0fe", single: "idea" },
     exercises: { max: 5, color: "#f4a261", single: "exercise" },
     stories: { max: 1, color: "#80ed99", single: "story" },
-    faqs: { max: 2, color: "#415a77", single: "faq" },
     casestudies: { max: 1, color: "#d4a373", single: "casestudy" },
     tips: { max: 3, color: "#766153", single: "tip" },
     metaphores: { max: 3, color: "#ecf39e", single: "metaphore" },
     experiments: { max: 2, color: "#f7ede2", single: "experiment" },
     expertopinions: { max: 3, color: "#e07a5f", single: "expertopinion" },
     quotes: { max: 5, color: "#f2cc8f", single: "quote" },
-    questions: { max: 3, color: "#3d405b", single: "question" },
+    questions: { max: 3, color: "#415a77", single: "question" },
   },
 };
 module.exports = {

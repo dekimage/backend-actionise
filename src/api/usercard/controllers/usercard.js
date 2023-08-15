@@ -14,6 +14,9 @@ module.exports = createCoreController(
   "api::usercard.usercard",
   ({ strapi }) => ({
     async resetUser(ctx) {
+      if (!CONFIG.ALLOWED_EMAILS.includes(ctx.state.user.email)) {
+        ctx.throw(403, "You are not allowed to reset the user.");
+      }
       // ADD SECURITY CHECK FOR MY PERSONAL USERNAME IF NOT => RETURN 403
       const user = ctx.state.user;
       const payload = USER.TEST_USER_DATA;
@@ -52,13 +55,13 @@ module.exports = createCoreController(
       const contentTypeIdParsed = parseInt(contentTypeId);
 
       const isValidContentType = (contentType) =>
-        contentType in C_TYPES.MAX_PROGRESS_PER_C_TYPE ? true : false;
+        contentType in C_TYPES.CONTENT_MAP ? true : false;
 
       if (!isValidContentType(contentType)) {
         ctx.throw(400, "Invalid content type");
       }
 
-      const formattedContentType = C_TYPES.singularize(contentType);
+      const formattedContentType = C_TYPES.CONTENT_MAP[contentType].single;
       const contentTypeData =
         action == API_ACTIONS.updateContentType.claim
           ? { isOpen: true }
@@ -184,7 +187,7 @@ module.exports = createCoreController(
 
         if (
           progressMap[contentType][contentTypeId].completed <
-          C_TYPES.MAX_PROGRESS_PER_C_TYPE[contentType]
+          C_TYPES.CONTENT_MAP[contentType].max
         ) {
           progressMap[contentType][contentTypeId] = {
             completed: progressMap[contentType][contentTypeId].completed + 1,
@@ -206,7 +209,7 @@ module.exports = createCoreController(
         // Check if progress is already at the maximum for this contentType
         if (
           progressQuest[contentType].progress + 1 ==
-          C_TYPES.MAX_PROGRESS_PER_C_TYPE[contentType]
+          C_TYPES.CONTENT_MAP[contentType].max
         ) {
           // If progress is at maximum, reset progress to 1 and increment level
           // progressQuest[contentType].progress = 0;
@@ -246,7 +249,7 @@ module.exports = createCoreController(
         progressQuest[contentType].level++;
         progressQuest[contentType].progress =
           progressQuest[contentType].progress -
-          C_TYPES.MAX_PROGRESS_PER_C_TYPE[contentType];
+          C_TYPES.CONTENT_MAP[contentType].max;
 
         // ROLL RANDOM CONTENT TYPE
         const randomReward = await strapi
@@ -258,7 +261,7 @@ module.exports = createCoreController(
           ctx.throw(400, "No rewards available.");
         }
 
-        const formattedContentType = C_TYPES.singularize(rewardType);
+        const formattedContentType = C_TYPES.CONTENT_MAP[rewardType].single;
 
         const cardFromReward = await strapi.entityService.findOne(
           `api::${formattedContentType}.${formattedContentType}`,
@@ -583,8 +586,8 @@ module.exports = createCoreController(
         ctx.throw(400, `This objective is not completed yet!`);
       }
 
-      if (objective.is_premium && !user.is_subscribed) {
-        ctx.throw(400, `This objective requires a premium subscription`);
+      if (objective.is_premium && !user.pro) {
+        ctx.throw(400, `This objective requires a pro account!`);
       }
 
       // objectives trigger for daily/weekly
@@ -794,16 +797,23 @@ module.exports = createCoreController(
 
       // IF PRODUCT === SUBSCRIPTION
       if (product.type === TYPES.PRODUCT_TYPES.subscription) {
-        if (user.is_subscribed) {
-          return ctx.badRequest("You are already subscribed.");
+        if (user.pro) {
+          return ctx.badRequest("You already purchased pro.");
         }
+        const starsAmountReward = product.bundle.filter(
+          (bundle) => bundle.type === TYPES.PRODUCT_TYPES.stars
+        )[0].quantity;
 
-        const upload = {
-          is_subscribed: true,
-          subscription_date: Date.now(),
-        };
+        const energyAmountRewards = product.bundle.filter(
+          (bundle) => bundle.type === TYPES.PRODUCT_TYPES.energy
+        )[0].quantity;
 
-        const updatedUser = STRAPI.updateUser(user.id, upload);
+        STRAPI.updateUser(user.id, {
+          pro: true,
+          stars: user.stars + starsAmountReward,
+          energy: energyAmountRewards,
+          max_energy: energyAmountRewards,
+        });
 
         const newOrder = await strapi
           .service(CONFIG.API_PATH)
@@ -811,10 +821,11 @@ module.exports = createCoreController(
 
         const data = {
           newOrder,
-          is_subscribed: updatedUser.is_subscribed,
+          pro: true,
         };
 
-        // SUBSCRIPTION_PURCHASE_SUCCESS
+        // ADD REST OF STUFF
+
         return data;
       }
 
@@ -1071,10 +1082,8 @@ module.exports = createCoreController(
         );
       }
 
-      if (!user.is_subscribed && levelReward.is_premium) {
-        return ctx.badRequest(
-          "You need premium subscription to unlock this reward."
-        );
+      if (!user.pro && levelReward.is_premium) {
+        return ctx.badRequest("You need pro account to unlock this reward.");
       }
 
       if (userRewards[levelReward.id]) {
@@ -1202,6 +1211,28 @@ module.exports = createCoreController(
     },
 
     // SETTINGS
+    async claimFaq(ctx) {
+      const { id } = ctx.request.body;
+      const user = await STRAPI.getUser(ctx.state.user.id);
+      const faqRewards = user.faq_rewards || [];
+      const faq = strapi.query("api::faq.faq").findOne({ id });
+
+      if (!faq) {
+        ctx.throw(400, "This faq does not exist.");
+      }
+
+      if (faqRewards.includes(id)) {
+        ctx.throw(400, "You have already claimed this faq.");
+      }
+
+      const upload = {
+        faq_rewards: [...faqRewards, id],
+        stars: user.stars + CONFIG.STARS_REWARD_FROM_FAQ,
+      };
+
+      await STRAPI.updateUser(user.id, upload);
+      return { rewards: { stars: CONFIG.STARS_REWARD_FROM_FAQ } };
+    },
     async updateEmailSettings(ctx) {
       const user = await STRAPI.getUser(ctx.state.user.id);
       const { settings } = ctx.request.body;
@@ -1287,22 +1318,6 @@ module.exports = createCoreController(
       };
     },
 
-    async cancelSubscription(ctx) {
-      const user = await STRAPI.getUser(ctx.state.user.id);
-
-      const isUnsubscribed = user.is_subscription_cancelled;
-      const isPremium = user.is_subscribed;
-
-      if (isUnsubscribed || !isPremium) {
-        return ctx.badRequest(
-          "Your subscription is cancelled or doesn't exist."
-        );
-      }
-
-      const upload = { is_subscription_cancelled: true };
-      const data = await STRAPI.updateUser(user.id, upload);
-      return data.is_unsubscribed;
-    },
     async deleteAccount(ctx) {
       const userId = ctx.state.user.id;
 

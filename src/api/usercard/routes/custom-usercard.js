@@ -106,16 +106,15 @@ module.exports = {
       path: "/usercard/claim-objective",
       handler: "usercard.claimObjective",
     },
-
-    {
-      method: "PUT",
-      path: "/usercard/cancel-subscription",
-      handler: "usercard.cancelSubscription",
-    },
     {
       method: "PUT",
       path: "/usercard/delete-account",
       handler: "usercard.deleteAccount",
+    },
+    {
+      method: "PUT",
+      path: "/usercard/claim-faq",
+      handler: "usercard.claimFaq",
     },
   ],
 };

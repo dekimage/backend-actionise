@@ -472,12 +472,13 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
 
   getRandomUndroppedContent: async (ctx, user) => {
     const cardIds = user.unlocked_cards?.ids || [];
-    const contentTypes = C_TYPES.CONTENT_TYPES;
+    const contentTypes = Object.keys(C_TYPES.CONTENT_MAP);
     while (contentTypes.length > 0) {
       const randomIndex = Math.floor(Math.random() * contentTypes.length);
       const randomContentType = contentTypes[randomIndex];
       contentTypes.splice(randomIndex, 1);
-      const formattedContentType = C_TYPES.singularize(randomContentType);
+      const formattedContentType =
+        C_TYPES.CONTENT_MAP[randomContentType].single;
 
       if (!formattedContentType) {
         ctx.throw(400, "You've unlocked all content types");
