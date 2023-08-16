@@ -345,7 +345,6 @@ module.exports = createCoreController(
       }
     },
 
-    // fix update/program
     async updateCard(ctx) {
       const user = await STRAPI.getUser(ctx.state.user.id, {
         last_completed_cards: true,
@@ -747,9 +746,9 @@ module.exports = createCoreController(
         },
       });
 
-      const productId = ctx.request.body.id;
-
+      const productId = ctx.request.body.productId;
       // const payment_env = ctx.request.body.payment_env;
+
       const payment_env = TYPES.PAYMENT_ENV_TYPES.ios;
 
       const product = await strapi.db.query("api::product.product").findOne({
@@ -766,7 +765,7 @@ module.exports = createCoreController(
       // validation from PAYMENT GATEWAY - DELETE FAKE DATA
       const API = {
         status: "paid",
-        amount: product.amount,
+        amount: product.price,
         payment_env: payment_env,
       };
 
@@ -800,6 +799,7 @@ module.exports = createCoreController(
         if (user.pro) {
           return ctx.badRequest("You already purchased pro.");
         }
+
         const starsAmountReward = product.bundle.filter(
           (bundle) => bundle.type === TYPES.PRODUCT_TYPES.stars
         )[0].quantity;
@@ -821,7 +821,6 @@ module.exports = createCoreController(
 
         const data = {
           newOrder,
-          pro: true,
         };
 
         // ADD REST OF STUFF
@@ -831,48 +830,78 @@ module.exports = createCoreController(
 
       // IF PRODUCT === STARS
       if (product.type === TYPES.PRODUCT_TYPES.stars) {
+        const isFirstBonus = !user.stats[USER.DEFAULT_USER_STATS.first_bonus];
+
+        const starsGained =
+          user.stars + product.amount + isFirstBonus ? product.amount : 0;
+
+        const upload = {
+          stars: starsGained,
+          stats: isFirstBonus
+            ? { ...user.stats, first_bonus: true }
+            : user.stats,
+        };
+        await STRAPI.updateUser(user.id, upload);
+
         const newOrder = await strapi
           .service(CONFIG.API_PATH)
           .createOrder(user, product, API);
 
-        const upload = { gems: user.gems + product.amount };
+        const data = {
+          newOrder,
+        };
+        return data;
+      }
+
+      // IF PRODUCT === ENERGY
+      if (product.type === TYPES.PRODUCT_TYPES.energy) {
+        const isFirstBonus = !user.stats[USER.DEFAULT_USER_STATS.first_bonus];
+        const newOrder = await strapi
+          .service(CONFIG.API_PATH)
+          .createOrder(user, product, API);
+
+        const upload = {
+          energy:
+            user.energy + product.amount + isFirstBonus ? product.amount : 0,
+          stats: isFirstBonus
+            ? { ...user.stats, first_bonus: true }
+            : user.stats,
+        };
         await STRAPI.updateUser(user.id, upload);
 
         const data = {
           newOrder,
-          gems: user.gems + product.amount,
         };
         return data;
-        // "GEMS_PURCHASE_SUCCESS"
       }
 
       // IF PRODUCT === BUNDLE
-      if (product.type === TYPES.PRODUCT_TYPES.bundle) {
-        const hasBundle =
-          user.orders.filter((order) => order.product.id === product.id)
-            .length > 0;
+      // if (product.type === TYPES.PRODUCT_TYPES.bundle) {
+      //   const hasBundle =
+      //     user.orders.filter((order) => order.product.id === product.id)
+      //       .length > 0;
 
-        if (hasBundle) {
-          return ctx.badRequest("You have already purchased this bundle.");
-        }
+      //   if (hasBundle) {
+      //     return ctx.badRequest("You have already purchased this bundle.");
+      //   }
 
-        for (let i = 0; i < product.bundle.length; i++) {
-          await strapi
-            .service(CONFIG.API_PATH)
-            .gainReward(
-              user,
-              product.bundle[i].type,
-              product.bundle[i].quantity
-            );
-        }
+      //   for (let i = 0; i < product.bundle.length; i++) {
+      //     await strapi
+      //       .service(CONFIG.API_PATH)
+      //       .gainReward(
+      //         user,
+      //         product.bundle[i].type,
+      //         product.bundle[i].quantity
+      //       );
+      //   }
 
-        const newOrder = await strapi
-          .service(CONFIG.API_PATH)
-          .createOrder(user, product, API);
+      //   const newOrder = await strapi
+      //     .service(CONFIG.API_PATH)
+      //     .createOrder(user, product, API);
 
-        // BUNDLE_PURCHASE_SUCCESS
-        return newOrder;
-      }
+      //   // BUNDLE_PURCHASE_SUCCESS
+      //   return newOrder;
+      // }
     },
 
     async notifyMe(ctx) {

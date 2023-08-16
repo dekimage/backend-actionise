@@ -65,6 +65,7 @@ const afterCreate = async (result) => {
       streak_rewards: {
         1: false,
       },
+      unlocked_cards: [],
       stats: {
         mastery: 0,
         card_unlock: 0,
@@ -73,6 +74,7 @@ const afterCreate = async (result) => {
         claimed_artifacts: 0,
         daily_objectives_complete: 0,
         weekly_objectives_complete: 0,
+        first_bonus: false,
       },
       email_preferences: {
         newsletter: true,

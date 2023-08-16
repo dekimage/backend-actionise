@@ -239,13 +239,8 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
         status: API.status,
         payment_env: API.payment_env,
       },
-      populate: {
-        user: true,
-        product: true,
-      },
     });
-    newOrder.user = newOrder.user.id;
-    newOrder.product = newOrder.product.id;
+
     return newOrder;
   },
 
@@ -281,7 +276,7 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
 
       const payload = {
         stars: user.stars - card.cost,
-        unlocked_cards: [...user.unlocked_cards.ids, card.id],
+        unlocked_cards: [...user.unlocked_cards, card.id],
       };
 
       await STRAPI.updateUser(user.id, payload);

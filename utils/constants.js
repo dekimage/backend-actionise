@@ -42,7 +42,7 @@ const TYPES = {
   SETTINGS_BASICINFO_TYPES: ["username", "age", "gender"],
   FEEDBACK_TYPES: {
     rating: "rating",
-    feedback: "feedback",
+    message: "message",
   },
   NOTIFICATION_KEYS: [
     "newsletter",
@@ -75,8 +75,9 @@ const TYPES = {
     cardsUnlock: "card_unlock",
   },
   PRODUCT_TYPES: {
-    gems: "gems",
+    energy: "energy",
     bundle: "bundle",
+    stars: "stars",
     subscription: "subscription",
   },
   STREAK_REWARD_TYPES: {
@@ -84,7 +85,7 @@ const TYPES = {
   },
   PAYMENT_ENV_TYPES: {
     android: "android",
-    ios: "ios",
+    ios: "apple",
     cpay: "cpay",
   },
 };
@@ -111,6 +112,7 @@ const USER = {
     claimed_artifacts: 0,
     daily_objectives_complete: 0,
     weekly_objectives_complete: 0,
+    first_bonus: false,
   },
   TEST_USER_DATA: {
     level: 30,
@@ -118,6 +120,7 @@ const USER = {
     stars: 10000,
     energy: 1000,
     streak: 100,
+    highest_streak: 100,
     highest_buddy_shares: 10,
     is_notify_me: false,
     objectives_json: {
@@ -140,6 +143,7 @@ const USER = {
     tutorial_step: 0,
     shared_by: [],
     shared_buddies: [],
+    unlocked_cards: [],
     last_unlocked_cards: [],
     last_completed_cards: [],
     streak_rewards: {},
