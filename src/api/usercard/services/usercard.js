@@ -281,6 +281,7 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
 
       const payload = {
         stars: user.stars - card.cost,
+        unlocked_cards: [...user.unlocked_cards.ids, card.id],
       };
 
       await STRAPI.updateUser(user.id, payload);
@@ -467,6 +468,9 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
 
   gainCard: async (ctx, card) => {
     const usercard = await STRAPI.getOrCreateUserCard(ctx, card, true);
+    await STRAPI.updateUser(ctx.state.user.id, {
+      unlocked_cards: [...ctx.state.user.unlocked_cards.ids, card.id],
+    });
     return { card, usercard };
   },
 
@@ -504,6 +508,13 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
                       is_open: true,
                     },
                   },
+                  user.pro
+                    ? {
+                        card: {
+                          type: "premium",
+                        },
+                      }
+                    : {},
                 ],
               },
             ],

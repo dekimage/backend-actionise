@@ -155,17 +155,17 @@ module.exports = createCoreController(
 
       if (action == API_ACTIONS.updateContentType.complete) {
         // check 24 hours
-        // const oneDay = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-        // if (
-        //   Date.now() -
-        //     userCard.progressMap[contentType][contentTypeId].lastTime <
-        //   oneDay
-        // ) {
-        //   return ctx.throw(
-        //     400,
-        //     "You need to wait 24 hours before updating progress again."
-        //   );
-        // }
+        const oneDay = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        if (
+          Date.now() -
+            userCard.progressMap[contentType][contentTypeId].lastTime <
+          oneDay
+        ) {
+          return ctx.throw(
+            400,
+            "You need to wait 24 hours before updating progress again."
+          );
+        }
 
         // check energy
         if (user.energy < 1) {
@@ -1104,10 +1104,10 @@ module.exports = createCoreController(
       let rewards = {};
 
       // GAIN CARD
-      if (levelReward.reward_card) {
+      if (levelReward.card) {
         const gainCardResponse = await strapi
           .service(CONFIG.API_PATH)
-          .gainCard(ctx, levelReward.reward_card);
+          .gainCard(ctx, levelReward.card);
 
         rewards.card = gainCardResponse.card;
         rewards.usercard = { ...gainCardResponse.usercard, card: rewards.card }; // because card is not populated on usercard
