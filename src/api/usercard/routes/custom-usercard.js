@@ -38,11 +38,6 @@ module.exports = {
     },
     {
       method: "PUT",
-      path: "/usercard/update-tutorial",
-      handler: "usercard.updateTutorial",
-    },
-    {
-      method: "PUT",
       path: "/usercard/get-random-card",
       handler: "usercard.getRandomCard",
     },
@@ -115,6 +110,16 @@ module.exports = {
       method: "PUT",
       path: "/usercard/claim-faq",
       handler: "usercard.claimFaq",
+    },
+    {
+      method: "PUT",
+      path: "/usercard/claim-tutorial-step",
+      handler: "usercard.claimTutorialStep",
+    },
+    {
+      method: "PUT",
+      path: "/usercard/claim-calendar-reward",
+      handler: "usercard.claimCalendarReward",
     },
   ],
 };

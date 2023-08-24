@@ -1,18 +1,24 @@
 const { TYPES, CONFIG, C_TYPES } = require("./constants");
 
 const FUNCTIONS = {
-  resetUserObjectives: async (user_json, isWeekRestarted) => {
+  resetUserObjectives: async (user_json, timeType) => {
     const arr = await strapi.db.query("api::objective.objective").findMany();
 
     var obj = {};
     for (var i = 0; i < arr.length; i++) {
       if (arr[i].time_type == TYPES.OBJECTIVE_TIME_TYPES.daily) {
-        const calcProgress =
-          arr[i].requirement == TYPES.OBJECTIVE_REQUIREMENT_TYPES.login ? 1 : 0;
-        obj[arr[i].id] = { progress: calcProgress, isCollected: false };
+        if (timeType == TYPES.OBJECTIVE_TIME_TYPES.daily) {
+          const calcProgress =
+            arr[i].requirement == TYPES.OBJECTIVE_REQUIREMENT_TYPES.login
+              ? 1
+              : 0;
+          obj[arr[i].id] = { progress: calcProgress, isCollected: false };
+        } else {
+          obj[arr[i].id] = user_json[arr[i].id];
+        }
       }
       if (arr[i].time_type == TYPES.OBJECTIVE_TIME_TYPES.weekly) {
-        if (isWeekRestarted) {
+        if (timeType == TYPES.OBJECTIVE_TIME_TYPES.weekly) {
           obj[arr[i].id] = { progress: 0, isCollected: false };
         } else {
           obj[arr[i].id] = user_json[arr[i].id];
@@ -103,13 +109,12 @@ const FUNCTIONS = {
   calculateWeekReset: (user, today) => {
     const weekResetDate =
       user.reset_week_date || today.getTime() + 7 * 24 * 60 * 60 * 1000;
-    const isWeekRestarted = today.getTime() >= weekResetDate;
-    const resetWeekDate = isWeekRestarted
+    console.log(weekResetDate);
+    const shouldWeekRestart = today.getTime() >= weekResetDate;
+    const resetWeekDate = shouldWeekRestart
       ? today.getTime() + 7 * 24 * 60 * 60 * 1000
-      : !user.reset_week_date
-      ? today.getTime() + 7 * 24 * 60 * 60 * 1000
-      : user.reset_week_date;
-    return { resetWeekDate, isWeekRestarted };
+      : user.reset_week_date || today.getTime() + 7 * 24 * 60 * 60 * 1000;
+    return { resetWeekDate, shouldWeekRestart };
   },
 
   formatDate: (date) => {
@@ -190,7 +195,7 @@ const STRAPI = {
       });
     return FUNCTIONS.sanitizeUser(entry);
   },
-  updateUser: async (id, payload, populate = {}) => {
+  updateUser: async function (id, payload, populate = {}) {
     // const defaultPopulate = { usercards: true, orders: true };
     const user = await strapi.db
       .query("plugin::users-permissions.user")
@@ -225,6 +230,10 @@ const STRAPI = {
             progressQuest: {},
           },
         });
+
+      await STRAPI.updateUser(ctx.state.user.id, {
+        unlocked_cards: [...ctx.state.user.unlocked_cards, card.id],
+      });
       return newUserCardRelation;
     }
     if (
@@ -237,6 +246,26 @@ const STRAPI = {
     }
     return checkUserCardRelation;
   },
+  updateStats: async function (user, stat) {
+    await this.updateUser(user.id, {
+      stats: { ...user.stats, [stat]: user.stats[stat] + 1 },
+    });
+  },
+
+  triggerTutorial: async function (user, event) {
+    const { step, progress } = user.tutorial;
+
+    if (TYPES.TUTORIAL_STEPS[event] == step) {
+      await this.updateUser(user.id, {
+        tutorial: {
+          step: step,
+          progress: progress + 1,
+        },
+      });
+    }
+    return;
+  },
+
   testFind: async () => {
     const entry = await strapi.entityService.findMany("api::card.card", {
       fields: ["id"],

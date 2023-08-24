@@ -47,24 +47,41 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
     return { success: true };
   },
   // reset-user on daily/weekly basis
-  resetUser: async (user, today) => {
-    const { resetWeekDate, isWeekRestarted } = FUNCTIONS.calculateWeekReset(
+  resetUser: async (user) => {
+    const today = new Date();
+    const isDailyResetComplete =
+      FUNCTIONS.formatDate(today) === user.reset_date;
+
+    const { resetWeekDate, shouldWeekRestart } = FUNCTIONS.calculateWeekReset(
       user,
       today
     );
 
-    await STRAPI.updateUser(user.id, {
-      energy:
-        user.energy <= CONFIG.DEFAULT_ENERGY
-          ? CONFIG.DEFAULT_ENERGY
-          : user.energy,
-      reset_date: FUNCTIONS.formatDate(today),
-      reset_week_date: resetWeekDate,
-      objectives_json: await FUNCTIONS.resetUserObjectives(
-        user.objectives_json,
-        isWeekRestarted
-      ),
-    });
+    console.log({ resetWeekDate, shouldWeekRestart });
+
+    if (!isDailyResetComplete) {
+      await STRAPI.updateUser(user.id, {
+        energy:
+          user.energy <= CONFIG.DEFAULT_ENERGY
+            ? CONFIG.DEFAULT_ENERGY
+            : user.energy,
+        reset_date: FUNCTIONS.formatDate(today),
+        objectives_json: await FUNCTIONS.resetUserObjectives(
+          user.objectives_json,
+          TYPES.OBJECTIVE_REQUIREMENT_TYPES.daily
+        ),
+      });
+    }
+
+    if (shouldWeekRestart) {
+      await STRAPI.updateUser(user.id, {
+        reset_week_date: resetWeekDate,
+        objectives_json: await FUNCTIONS.resetUserObjectives(
+          user.objectives_json,
+          TYPES.OBJECTIVE_REQUIREMENT_TYPES.weekly
+        ),
+      });
+    }
   },
 
   gainXp: async (user, xp) => {
@@ -244,7 +261,7 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
     return newOrder;
   },
 
-  updateCard: async (user, card_id, action, ctx, contentIndex) => {
+  updateCard: async (user, card_id, action, ctx) => {
     const card = await strapi.db.query("api::card.card").findOne({
       where: {
         id: card_id,
@@ -276,22 +293,17 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
 
       const payload = {
         stars: user.stars - card.cost,
-        unlocked_cards: [...user.unlocked_cards, card.id],
       };
 
       await STRAPI.updateUser(user.id, payload);
 
-      const artifactData = await strapi
+      const artifact = await strapi
         .service("api::usercard.usercard")
-        .achievementTrigger(user, TYPES.ARTIFACT_TRIGGERS.cardsUnlock);
-
-      console.log("artifactData", artifactData);
+        .achievementTrigger(user, TYPES.STATS_OPTIONS.card_unlock);
 
       return {
-        usercard: usercard,
-        rewards: artifactData.artifactData && {
-          artifact: artifactData.artifactData,
-        },
+        usercard,
+        ...(artifact && { rewards: { ...artifact } }),
       };
     }
 
@@ -331,27 +343,27 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
             data: update,
           });
 
-        // update mastery
-        await STRAPI.updateUser(user.id, {
-          stats: { ...user.stats, mastery: user.stats.mastery + 1 },
-        });
-
         //update objectives
-        await strapi
+        const objectivesForNotification = await strapi
           .service("api::usercard.usercard")
           .objectivesTrigger(user, TYPES.OBJECTIVE_TRIGGERS.complete);
 
         //update artifacts
-        const artifactData = await strapi
+        // TODO: ADD MULTIDIMENSIONAL ACHIVEMENT TRIGGER (mastery + cards_complete -> complete_program/card)
+        const artifact1 = await strapi
           .service("api::usercard.usercard")
-          .achievementTrigger(user, TYPES.ARTIFACT_TRIGGERS.cardsComplete);
+          .achievementTrigger(user, TYPES.STATS_OPTIONS.cards_complete);
+
+        const artifact2 = await strapi
+          .service("api::usercard.usercard")
+          .achievementTrigger(user, TYPES.STATS_OPTIONS.cards_complete);
 
         return {
           usercard: usercardUpdated,
-          modal: artifactData && {
-            artifactData: artifactData.artifactData,
-            stats: artifactData.data,
-          },
+          objectivesForNotification,
+          ...((artifact1 || artifact2) && {
+            rewards: { artifact: artifact1, artifact: artifact2 },
+          }),
         };
       } else {
         ctx.throw(400, "you need to wait xx before you can complete it again");
@@ -398,6 +410,7 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
     }
 
     const statUpdated = user_stats[requirement] + 1;
+
     const shouldGainArtifact =
       CONFIG.ARTIFACTS_TABLE[requirement].filter((req) => req === statUpdated)
         .length > 0;
@@ -414,20 +427,13 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
         .gainArtifact(user, artifact.id);
     }
 
-    const updated_user_stats = {
-      ...user_stats,
-      [requirement]: statUpdated,
-    };
+    await STRAPI.updateStats(user, requirement);
 
-    const upload = {
-      stats: updated_user_stats,
-    };
+    return shouldGainArtifact && artifact;
 
-    const data = await STRAPI.updateUser(user.id, upload);
-    return {
-      data: data.stats,
-      rewards: shouldGainArtifact && { artifact: artifact },
-    };
+    // return {
+    //   rewards: shouldGainArtifact && { artifact: artifact },
+    // };
   },
 
   objectivesTrigger: async (user, requirement) => {
@@ -436,6 +442,9 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
       .findMany();
 
     let user_objectives = user.objectives_json || {};
+
+    // objectives for notification
+    let objectivesForNotification = [];
 
     objectives.forEach((obj) => {
       if (obj.requirement === requirement) {
@@ -448,6 +457,23 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
             isCollected: false,
           };
         }
+        // notification prepare (if 1. obj is pro but user is not, 2. obj is not collected and 3. obj is not daily/weekly)
+        if (
+          !(obj.is_premium && !user.pro) &&
+          !user_objectives[obj.id].isCollected &&
+          !(
+            obj.requirement == TYPES.OBJECTIVE_TRIGGERS.daily ||
+            obj.requirement == TYPES.OBJECTIVE_TRIGGERS.weekly
+          )
+        ) {
+          objectivesForNotification.push({
+            ...obj,
+            progress: user_objectives[obj.id]
+              ? user_objectives[obj.id].progress
+              : 1,
+            isCollected: false,
+          });
+        }
       }
     });
 
@@ -455,22 +481,21 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
       objectives_json: user_objectives,
     };
 
-    const data = await STRAPI.updateUser(user.id, upload);
-    return {
-      objectives_json: data.objectives_json,
-    };
+    await STRAPI.updateUser(user.id, upload);
+    return objectivesForNotification;
+    // {
+    //   objectives_json: data.objectives_json,
+    //   objectivesForNotification,
+    // };
   },
 
   gainCard: async (ctx, card) => {
     const usercard = await STRAPI.getOrCreateUserCard(ctx, card, true);
-    await STRAPI.updateUser(ctx.state.user.id, {
-      unlocked_cards: [...ctx.state.user.unlocked_cards.ids, card.id],
-    });
     return { card, usercard };
   },
 
   getRandomUndroppedContent: async (ctx, user) => {
-    const cardIds = user.unlocked_cards?.ids || [];
+    const cardIds = user.unlocked_cards || [];
     const contentTypes = Object.keys(C_TYPES.CONTENT_MAP);
     while (contentTypes.length > 0) {
       const randomIndex = Math.floor(Math.random() * contentTypes.length);

@@ -56,6 +56,16 @@ const afterCreate = async (result) => {
       highest_streak_count: 0,
       avatar: 1,
       objectives_json: await createNewUserObjectives(),
+      tutorial: {
+        step: 1,
+        progress: 0,
+        isCompleted: false,
+        calendar: {
+          claimed_days: [],
+          startDate: new Date(),
+          isFinished: false,
+        },
+      },
       rewards_tower: {
         1: false,
       },

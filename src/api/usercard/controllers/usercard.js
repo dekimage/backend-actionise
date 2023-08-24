@@ -142,7 +142,6 @@ module.exports = createCoreController(
         };
 
         // SAVE USERCARD - PROGRESSMAP
-
         await strapi.db.query(CONFIG.API_PATH).update({
           where: { id: userCard.id },
           data: {
@@ -172,6 +171,18 @@ module.exports = createCoreController(
           return ctx.throw(400, "You don't have enough energy.");
         }
 
+        if (
+          progressMap[contentType][contentTypeId].completed <
+          C_TYPES.CONTENT_MAP[contentType].max
+        ) {
+          progressMap[contentType][contentTypeId] = {
+            completed: progressMap[contentType][contentTypeId].completed + 1,
+            lastTime: Date.now(),
+          };
+        } else {
+          ctx.throw(400, "You have already completed this content type.");
+        }
+
         // LAST COMPLETED UPDATE + energy reduce
         let new_last_completed = user.last_completed_cards;
         new_last_completed.push(cardId);
@@ -185,35 +196,16 @@ module.exports = createCoreController(
 
         await STRAPI.updateUser(user.id, payload);
 
-        if (
-          progressMap[contentType][contentTypeId].completed <
-          C_TYPES.CONTENT_MAP[contentType].max
-        ) {
-          progressMap[contentType][contentTypeId] = {
-            completed: progressMap[contentType][contentTypeId].completed + 1,
-            lastTime: Date.now(),
-          };
-        } else {
-          ctx.throw(400, "You have already completed this content type.");
-        }
-
         // update the PROGRESSQUEST
-
-        // Initialize progressQuest if it's not defined
-        // let progressQuest = userCard.progressQuest ?? {};
         let progressQuest =
           userCard.progressQuest == null ? {} : userCard.progressQuest;
         progressQuest[contentType] =
           progressQuest[contentType] ?? C_TYPES.DEFAULT_PROGRESS_QUEST;
 
-        // Check if progress is already at the maximum for this contentType
         if (
           progressQuest[contentType].progress + 1 ==
           C_TYPES.CONTENT_MAP[contentType].max
         ) {
-          // If progress is at maximum, reset progress to 1 and increment level
-          // progressQuest[contentType].progress = 0;
-          // progressQuest[contentType].level++;
           progressQuest[contentType].claimsAvailable++;
         }
         progressQuest[contentType].progress++;
@@ -226,13 +218,23 @@ module.exports = createCoreController(
           },
         });
 
-        await strapi
+        const objectivesForNotification = await strapi
           .service(CONFIG.API_PATH)
           .objectivesTrigger(user, TYPES.OBJECTIVE_TRIGGERS.energy);
 
-        // ACHIEVEMENTS UPDATE?? @TODO
+        const artifact = await strapi
+          .service(CONFIG.API_PATH)
+          .achievementTrigger(user, TYPES.STATS_OPTIONS[contentType]);
 
-        ctx.send(userCard);
+        // update stats
+        await STRAPI.updateStats(user, TYPES.STATS_OPTIONS.mastery);
+        // TODO achivemnet trigger add here + update trigger achivement multidimensional for {contentType}
+
+        return {
+          usercard: userCard,
+          objectivesForNotification,
+          ...(artifact && { artifact }),
+        };
       }
 
       if (action == API_ACTIONS.updateContentType.claim) {
@@ -334,12 +336,17 @@ module.exports = createCoreController(
           },
         });
 
+        const artifact = await strapi
+          .service(CONFIG.API_PATH)
+          .achievementTrigger(user, TYPES.STATS_OPTIONS.quests_claimed);
+
         return {
           rewards: {
             stars: CONFIG.XP_FROM_QUEST,
             xp: xpRewards,
             content: { ...reward, type: rewardType },
             cardMeta: cardFromReward.card,
+            artifact,
           },
         };
       }
@@ -382,7 +389,10 @@ module.exports = createCoreController(
       let userCardWithCard = updateCardRes.usercard;
       userCardWithCard.card = card;
 
-      return userCardWithCard;
+      return {
+        userCardWithCard,
+        objectivesForNotification: updateCardRes.objectivesForNotification,
+      };
     },
 
     async buyCardTicket(ctx) {
@@ -436,12 +446,16 @@ module.exports = createCoreController(
         if (typeof rating !== "number" && !availableRatings.includes(rating)) {
           ctx.throw(400, "invalid input, must be proper rating number");
         }
+        const requirement = TYPES.STATS_OPTIONS.rated_cards;
+        await STRAPI.updateStats(user, requirement);
         upload = {
           rating: rating,
         };
       }
       // IF MESSAGE
       if (feedbackType === TYPES.FEEDBACK_TYPES.message) {
+        const requirement = TYPES.STATS_OPTIONS.feedback_cards;
+        await STRAPI.updateStats(user, requirement);
         upload = {
           message: rating,
           isRated: true,
@@ -520,11 +534,7 @@ module.exports = createCoreController(
         });
 
       // Reset User
-      const today = new Date();
-      const isRestarted = FUNCTIONS.formatDate(today) === user.reset_date;
-      if (!isRestarted) {
-        await strapi.service(CONFIG.API_PATH).resetUser(user, today);
-      }
+      await strapi.service(CONFIG.API_PATH).resetUser(user);
 
       const populate = FUNCTIONS.makePopulate([
         "usercards.card",
@@ -590,7 +600,7 @@ module.exports = createCoreController(
       }
 
       // objectives trigger for daily/weekly
-      await strapi
+      const objectivesForNotification = await strapi
         .service(CONFIG.API_PATH)
         .objectivesTrigger(user, objective.time_type);
 
@@ -621,18 +631,104 @@ module.exports = createCoreController(
       await STRAPI.updateUser(user.id, payload);
 
       // GAIN REWARDS SERVICE TRIGGER
-      const objectiveRewards = await strapi
+      let objectiveRewards = await strapi
         .service(CONFIG.API_PATH)
         .gainObjectiveRewards(user, objective);
 
       // artifact trigger
-      await strapi
+      const artifact = await strapi
         .service(CONFIG.API_PATH)
-        .achievementTrigger(user, TYPES.ARTIFACT_TRIGGERS[objective.time_type]);
+        .achievementTrigger(user, TYPES.STATS_OPTIONS[objective.time_type]);
+
+      if (artifact) {
+        objectiveRewards.artifact = artifact;
+      }
 
       return {
         rewards: objectiveRewards,
+        // objectivesForNotification, maybe no reason to show for objectives because on same page
       };
+    },
+
+    async claimTutorialStep(ctx) {
+      const user = await STRAPI.getUser(ctx.state.user.id);
+      const tutorial = user.tutorial || {};
+      const tutorialStep = ctx.request.body.tutorialStep;
+
+      if (
+        !tutorialStep ||
+        tutorialStep < 0 ||
+        tutorialStep > CONFIG.TUTORIAL_MAX_STEPS
+      ) {
+        return ctx.badRequest("Invalid Tutorial Step");
+      }
+
+      let upload;
+
+      if (tutorialStep <= CONFIG.TUTORIAL_MAX_STEPS) {
+        upload = {
+          tutorial: {
+            ...tutorial,
+            step: tutorialStep + 1,
+            progress: 0,
+          },
+        };
+      } else {
+        upload = {
+          tutorial: {
+            ...tutorial,
+            step: -1,
+            progress: -1,
+            isComplete: true,
+          },
+        };
+      }
+
+      await STRAPI.updateUser(user.id, upload);
+      return { rewards: { stars: CONFIG.STARS_FROM_TUTORIAL[step] } };
+    },
+
+    async claimCalendarReward(ctx) {
+      const user = await STRAPI.getUser(ctx.state.user.id);
+      let calendar = user.tutorial.calendar || {};
+
+      const today = new Date();
+      const daysSinceStart =
+        Math.floor((today - calendar.startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+      if (daysSinceStart > 7) {
+        calendar.isFinished = true;
+        ctx.throw(
+          400,
+          "You can't claim any more rewards. The 7-day period has ended."
+        );
+      }
+
+      if (daysSinceStart === 7) {
+        calendar.claimed_days.push(7);
+        calendar.isFinished = true;
+      }
+
+      if (calendar.claimed_days.includes(daysSinceStart)) {
+        ctx.throw(400, "You've already claimed the reward for this day.");
+      }
+
+      calendar.claimed_days.push(daysSinceStart);
+
+      upload = {
+        tutorial: {
+          ...tutorial,
+          calendar: {
+            ...calendar,
+            claimed_days: calendar.claimed_days,
+            startDate: calendar.startDate,
+            isFinished: calendar.isFinished,
+          },
+        },
+      };
+
+      await STRAPI.updateUser(user.id, upload);
+      return { rewards: { stars: CONFIG.STARS_FROM_CALENDAR[daysSinceStart] } };
     },
 
     async acceptReferral(ctx) {
@@ -716,26 +812,6 @@ module.exports = createCoreController(
       return randomCard;
     },
 
-    async updateTutorial(ctx) {
-      const user = await STRAPI.getUser(ctx.state.user.id);
-
-      const tutorialStep = ctx.request.body.tutorialStep;
-
-      if (
-        !tutorialStep ||
-        tutorialStep < 0 ||
-        tutorialStep > CONFIG.TUTORIAL_MAX_STEPS
-      ) {
-        return ctx.badRequest("Invalid Tutorial Step");
-      }
-      const upload = {
-        tutorial_step: tutorialStep,
-      };
-
-      const data = await STRAPI.updateUser(user.id, upload);
-      return data.tutorial_step;
-    },
-
     // SHOP
     async purchaseProduct(ctx) {
       const user = await STRAPI.getUser(ctx.state.user.id, {
@@ -815,17 +891,13 @@ module.exports = createCoreController(
           max_energy: energyAmountRewards,
         });
 
-        const newOrder = await strapi
+        await strapi.service(CONFIG.API_PATH).createOrder(user, product, API);
+
+        const artifact = await strapi
           .service(CONFIG.API_PATH)
-          .createOrder(user, product, API);
+          .achievementTrigger(user, TYPES.STATS_OPTIONS.pro_buy);
 
-        const data = {
-          newOrder,
-        };
-
-        // ADD REST OF STUFF
-
-        return data;
+        return { rewards: { artifact } };
       }
 
       // IF PRODUCT === STARS
@@ -843,22 +915,19 @@ module.exports = createCoreController(
         };
         await STRAPI.updateUser(user.id, upload);
 
-        const newOrder = await strapi
-          .service(CONFIG.API_PATH)
-          .createOrder(user, product, API);
+        await strapi.service(CONFIG.API_PATH).createOrder(user, product, API);
 
-        const data = {
-          newOrder,
-        };
-        return data;
+        const artifact = await strapi
+          .service(CONFIG.API_PATH)
+          .achievementTrigger(user, TYPES.STATS_OPTIONS.purchases_made);
+
+        return { rewards: { artifact } };
       }
 
       // IF PRODUCT === ENERGY
       if (product.type === TYPES.PRODUCT_TYPES.energy) {
         const isFirstBonus = !user.stats[USER.DEFAULT_USER_STATS.first_bonus];
-        const newOrder = await strapi
-          .service(CONFIG.API_PATH)
-          .createOrder(user, product, API);
+        await strapi.service(CONFIG.API_PATH).createOrder(user, product, API);
 
         const upload = {
           energy:
@@ -869,10 +938,11 @@ module.exports = createCoreController(
         };
         await STRAPI.updateUser(user.id, upload);
 
-        const data = {
-          newOrder,
-        };
-        return data;
+        const artifact = await strapi
+          .service(CONFIG.API_PATH)
+          .achievementTrigger(user, TYPES.STATS_OPTIONS.purchases_made);
+
+        return { rewards: { artifact } };
       }
 
       // IF PRODUCT === BUNDLE
@@ -1257,6 +1327,12 @@ module.exports = createCoreController(
       const upload = {
         faq_rewards: [...faqRewards, id],
         stars: user.stars + CONFIG.STARS_REWARD_FROM_FAQ,
+        stats: {
+          ...user.stats,
+          faqs_claimed: user.stats.faqs_claimed
+            ? user.stats.faqs_claimed + 1
+            : 1,
+        },
       };
 
       await STRAPI.updateUser(user.id, upload);

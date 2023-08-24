@@ -21,7 +21,7 @@ const CONFIG = {
   STARTING_XP: 300,
   XP_PER_OBJECTIVE: { daily: 75, weekly: 250 },
   DEFAULT_ENERGY: 10,
-  CHANCE_TO_GAIN_ARTIFACT: 0.99, // 0.166; 16.6% chance
+  CHANCE_TO_GAIN_ARTIFACT: 0.99, //TODO testing-  0.166; 16.6% chance
   MAX_COMPLETED_CARDS: 10,
 
   ARTIFACTS_TABLE: {
@@ -30,8 +30,30 @@ const CONFIG = {
     daily_objectives_complete: [15, 30, 75, 100, 150, 250],
     weekly_objectives_complete: [5, 15, 25],
   },
+
   CARD_RATINGS: [1, 2, 3, 4, 5],
-  TUTORIAL_MAX_STEPS: 5,
+  TUTORIAL_MAX_STEPS: 10,
+  STARS_FROM_TUTORIAL: {
+    1: 10,
+    2: 20,
+    3: 30,
+    4: 40,
+    5: 50,
+    6: 60,
+    7: 70,
+    8: 80,
+    9: 90,
+    10: 100,
+  },
+  STARS_FROM_CALENDAR: {
+    1: 50,
+    2: 100,
+    3: 200,
+    4: 400,
+    5: 600,
+    6: 800,
+    7: 1000,
+  },
   MAX_USER_FEEDBACK: 25,
   EMAIL: "contact@actionise.com",
   DEFAULT_SUBJECT: "New Feedback",
@@ -68,11 +90,36 @@ const TYPES = {
     energy: "energy",
     complete: "complete",
   },
-  ARTIFACT_TRIGGERS: {
+  // 4 not done, the rest are done, but need testing,
+  // also i changed gql and usercard redux types to also get artifact hope they work
+  // a ton of changes in backend with these mastery types, hope they work well too
+  STATS_OPTIONS: {
+    mastery: "mastery", // not done
+    card_unlock: "card_unlock",
+    cards_complete: "cards_complete", // not done
+    total_energy_spent: "total_energy_spent", // not done
     daily: "daily_objectives_complete",
     weekly: "weekly_objectives_complete",
-    cardsComplete: "cards_complete",
-    cardsUnlock: "card_unlock",
+    quests_claimed: "quests_claimed",
+    purchases_made: "purchases_made",
+    pro_buy: "pro_buy",
+    // contentTypes
+    ideas: "ideas_completed",
+    exercises: "exercises_completed",
+    stories: "stories_completed",
+    casestudies: "casestudies_completed",
+    tips: "tips_completed",
+    metaphores: "metaphores_completed",
+    experiments: "experiments_completed",
+    expertopinions: "expertopinions_completed",
+    quotes: "quotes_completed",
+    questions: "questions_completed",
+    // ^ above have achievement, below have no achievement
+    first_bonus: "first_bonus",
+    claimed_artifacts: "claimed_artifacts",
+    rated_cards: "rated_cards",
+    feedback_cards: "feedback_cards",
+    faqs_claimed: "faqs_claimed",
   },
   PRODUCT_TYPES: {
     energy: "energy",
@@ -87,6 +134,30 @@ const TYPES = {
     android: "android",
     ios: "apple",
     cpay: "cpay",
+  },
+  TUTORIAL_STEPS: {
+    complete_card: 1,
+    complete_action: 2,
+    complete_objective: 3,
+    complete_daily_objective: 4,
+    complete_weekly_objective: 5,
+    complete_streak: 6,
+    complete_friends: 7,
+    complete_artifact: 8,
+    complete_level: 9,
+    complete_tutorial: 10,
+  },
+  TUTORIAL_TYPES: {
+    complete_card: "complete_card",
+    complete_action: "complete_action",
+    complete_objective: "complete_objective",
+    complete_daily_objective: "complete_daily_objective",
+    complete_weekly_objective: "complete_weekly_objective",
+    complete_streak: "complete_streak",
+    complete_friends: "complete_friends",
+    complete_artifact: "complete_artifact",
+    complete_level: "complete_level",
+    complete_tutorial: "complete_tutorial",
   },
 };
 
@@ -106,13 +177,32 @@ API_ACTIONS = {
 
 const USER = {
   DEFAULT_USER_STATS: {
-    mastery: 0,
+    mastery: 0, // not done
     card_unlock: 0,
-    cards_complete: 0,
-    claimed_artifacts: 0,
+    cards_complete: 0, // not done
+    total_energy_spent: 0, // not done
     daily_objectives_complete: 0,
     weekly_objectives_complete: 0,
+    quests_claimed: 0,
+    purchases_made: 0,
+    pro_buy: false,
+    // contentTypes
+    ideas_completed: 0,
+    exercises_completed: 0,
+    stories_completed: 0,
+    casestudies_completed: 0,
+    tips_completed: 0,
+    metaphores_completed: 0,
+    experiments_completed: 0,
+    expertopinions_completed: 0,
+    quotes_completed: 0,
+    questions_completed: 0,
+    // ^ above have achievement, below have no achievement
     first_bonus: false,
+    claimed_artifacts: 0,
+    rated_cards: 0,
+    feedback_cards: 0,
+    faqs_claimed: 0,
   },
   TEST_USER_DATA: {
     level: 30,
@@ -132,6 +222,13 @@ const USER = {
       6: { progress: 15, isCollected: false },
       7: { progress: 15, isCollected: false },
       8: { progress: 15, isCollected: false },
+      9: { progress: 15, isCollected: false },
+      10: { progress: 15, isCollected: false },
+      11: { progress: 15, isCollected: false },
+      12: { progress: 15, isCollected: false },
+      13: { progress: 15, isCollected: false },
+      14: { progress: 15, isCollected: false },
+      15: { progress: 15, isCollected: false },
     },
     stats: this.DEFAULT_USER_STATS,
     card_tickets: [],
@@ -140,7 +237,11 @@ const USER = {
     artifacts: [],
     claimed_artifacts: [],
     favorite_cards: [],
-    tutorial_step: 0,
+    tutorial: {
+      step: 1,
+      progress: 0,
+      isCompleted: false,
+    },
     shared_by: [],
     shared_buddies: [],
     unlocked_cards: [],
@@ -171,17 +272,18 @@ const C_TYPES = {
     saved: false,
     isNew: true,
   },
+
   CONTENT_MAP: {
-    ideas: { max: 3, color: "#bde0fe", single: "idea" },
-    exercises: { max: 5, color: "#f4a261", single: "exercise" },
-    stories: { max: 1, color: "#80ed99", single: "story" },
-    casestudies: { max: 1, color: "#d4a373", single: "casestudy" },
-    tips: { max: 3, color: "#766153", single: "tip" },
-    metaphores: { max: 3, color: "#ecf39e", single: "metaphore" },
-    experiments: { max: 2, color: "#f7ede2", single: "experiment" },
-    expertopinions: { max: 3, color: "#e07a5f", single: "expertopinion" },
-    quotes: { max: 5, color: "#f2cc8f", single: "quote" },
-    questions: { max: 3, color: "#415a77", single: "question" },
+    ideas: { max: 3, single: "idea" },
+    exercises: { max: 5, single: "exercise" },
+    stories: { max: 1, single: "story" },
+    casestudies: { max: 1, single: "casestudy" },
+    tips: { max: 3, single: "tip" },
+    metaphores: { max: 3, single: "metaphore" },
+    experiments: { max: 2, single: "experiment" },
+    expertopinions: { max: 3, single: "expertopinion" },
+    quotes: { max: 5, single: "quote" },
+    questions: { max: 3, single: "question" },
   },
 };
 module.exports = {
