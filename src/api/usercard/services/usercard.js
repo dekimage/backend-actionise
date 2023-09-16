@@ -57,8 +57,6 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
       today
     );
 
-    console.log({ resetWeekDate, shouldWeekRestart });
-
     if (!isDailyResetComplete) {
       await STRAPI.updateUser(user.id, {
         energy:
@@ -68,7 +66,7 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
         reset_date: FUNCTIONS.formatDate(today),
         objectives_json: await FUNCTIONS.resetUserObjectives(
           user.objectives_json,
-          TYPES.OBJECTIVE_REQUIREMENT_TYPES.daily
+          TYPES.OBJECTIVE_TIME_TYPES.daily
         ),
       });
     }
@@ -78,7 +76,7 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
         reset_week_date: resetWeekDate,
         objectives_json: await FUNCTIONS.resetUserObjectives(
           user.objectives_json,
-          TYPES.OBJECTIVE_REQUIREMENT_TYPES.weekly
+          TYPES.OBJECTIVE_TIME_TYPES.weekly
         ),
       });
     }

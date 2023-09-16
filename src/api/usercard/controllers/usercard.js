@@ -436,7 +436,7 @@ module.exports = createCoreController(
         ctx.throw(400, "Invalid input, must be a valid feedback type");
       }
 
-      const usercard = await STRAPI.STRAPI.getUserCard(user.id, cardId);
+      const usercard = await STRAPI.getUserCard(user.id, cardId);
 
       if (!usercard) {
         ctx.throw(400, "invalid card, you don't have this card unlocked yet");
