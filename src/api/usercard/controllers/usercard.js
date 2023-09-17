@@ -79,6 +79,8 @@ module.exports = createCoreController(
 
       let userCard = await STRAPI.getOrCreateUserCard(ctx, card);
 
+      console.log("original", userCard);
+
       let progressMap = userCard?.progressMap || {};
 
       if (!progressMap[contentType]) {
@@ -189,6 +191,7 @@ module.exports = createCoreController(
         if (new_last_completed.length > CONFIG.MAX_COMPLETED_CARDS) {
           new_last_completed.shift();
         }
+
         const payload = {
           last_completed_cards: new_last_completed,
           energy: user.energy - 1,
@@ -197,17 +200,13 @@ module.exports = createCoreController(
         await STRAPI.updateUser(user.id, payload);
 
         // update the PROGRESSQUEST
-        let progressQuest =
-          userCard.progressQuest == null ? {} : userCard.progressQuest;
-        progressQuest[contentType] =
-          progressQuest[contentType] ?? C_TYPES.DEFAULT_PROGRESS_QUEST;
+        let progressQuest = userCard.progressQuest ?? {};
 
-        if (
-          progressQuest[contentType].progress + 1 ==
-          C_TYPES.CONTENT_MAP[contentType].max
-        ) {
-          progressQuest[contentType].claimsAvailable++;
-        }
+        progressQuest[contentType] ??= {
+          level: 1,
+          progress: 0,
+        };
+
         progressQuest[contentType].progress++;
 
         userCard = await strapi.db.query(CONFIG.API_PATH).update({
@@ -215,12 +214,13 @@ module.exports = createCoreController(
           data: {
             progressMap,
             progressQuest,
+            level: userCard.level + 1, // level = how many times you complete a single content type
           },
         });
 
         const objectivesForNotification = await strapi
           .service(CONFIG.API_PATH)
-          .objectivesTrigger(user, TYPES.OBJECTIVE_TRIGGERS.energy);
+          .objectivesTrigger(user, TYPES.OBJECTIVE_TRIGGERS.master_card);
 
         const artifact = await strapi
           .service(CONFIG.API_PATH)
@@ -243,11 +243,17 @@ module.exports = createCoreController(
         if (!progressQuest) {
           return ctx.throw(400, "You have not completed any content yet.");
         }
-        if (progressQuest[contentType].claimsAvailable < 1) {
-          return ctx.throw(400, "You have already claimed this quest.");
+        if (
+          progressQuest[contentType].progress <
+          C_TYPES.CONTENT_MAP[contentType].max
+        ) {
+          return ctx.throw(
+            400,
+            "You don't have enough mastery to claim this quest"
+          );
         }
         // claim quest
-        progressQuest[contentType].claimsAvailable--;
+
         progressQuest[contentType].level++;
         progressQuest[contentType].progress =
           progressQuest[contentType].progress -
@@ -339,6 +345,10 @@ module.exports = createCoreController(
         const artifact = await strapi
           .service(CONFIG.API_PATH)
           .achievementTrigger(user, TYPES.STATS_OPTIONS.quests_claimed);
+
+        const objectivesForQuest = await strapi
+          .service(CONFIG.API_PATH)
+          .objectivesTrigger(user, TYPES.OBJECTIVE_TRIGGERS.action); // action == quest
 
         return {
           rewards: {
@@ -565,6 +575,261 @@ module.exports = createCoreController(
         levelRewards,
       };
       return userDataModified;
+    },
+
+    async getRecommendedCards(ctx) {
+      const { prioritize } = ctx.request.body;
+
+      const user = await STRAPI.getUser(ctx.state.user.id);
+
+      const usercards = await strapi.db
+        .query("api::usercard.usercard")
+        .findMany({
+          where: {
+            user: user.id,
+          },
+          populate: {
+            card: {
+              populate: {
+                realm: true,
+                image: true,
+              },
+            },
+          },
+        });
+
+      let continueList = [];
+      let newCardsList = [];
+
+      const userPreferences = {
+        isProMember: user.pro,
+        favoriteCategories: user.tutorial?.favoriteCategories || [],
+      };
+
+      const sortCardsByScore = (cards, freshUnlockedCardsNoProgress) => {
+        const cardScores = cards.map((card) => {
+          const score =
+            // give for open first
+            (card.isOpen ? 1 : 0) +
+            // if pro member give not pro cards
+            (!userPreferences.isProMember && !card.type == "premium" ? 1 : 0) +
+            //favorite realms
+            (userPreferences.favoriteCategories.includes(card.realm?.id)
+              ? 0.75
+              : 0) +
+            // unlocked cards but 0 progress
+            (freshUnlockedCardsNoProgress.includes(card.id) ? 2 : 0);
+          return { ...card, score };
+        });
+
+        const sortedCards = cardScores.sort((a, b) =>
+          a.score === b.score ? Math.random() - 0.5 : b.score - a.score
+        );
+        return sortedCards;
+      };
+      const todayTimestamp = new Date().setHours(0, 0, 0, 0);
+      if (prioritize === "program") {
+        // 1. CONTINUE LIST
+        continueList = usercards
+          .filter(
+            (usercard) =>
+              usercard.completed > 0 &&
+              usercard.completed < CONFIG.PROGRAM_COMPLETED_MAX &&
+              new Date(usercard.completed_at).setHours(0, 0, 0, 0) !=
+                todayTimestamp
+          )
+          // .sort((a, b) => b.completed - a.completed)
+          .sort((a, b) => {
+            // Sort by progress in descending order
+            if (a.completed !== b.completed) {
+              return b.completed - a.completed;
+            }
+
+            // If progress is the same, check favorite categories
+            const aIsFavorite = userPreferences.favoriteCategories.includes(
+              a.realm?.id
+            );
+            const bIsFavorite = userPreferences.favoriteCategories.includes(
+              b.realm?.id
+            );
+
+            // Cards with favorite categories come first
+            if (aIsFavorite !== bIsFavorite) {
+              return aIsFavorite ? -1 : 1;
+            }
+
+            // If both have the same favorite status, no specific sorting within the same category
+            return 0;
+          })
+          .map((usercard) => usercard.card);
+
+        // 2. NEW CARDS LIST
+        const cardsInProgress = usercards
+          .filter((usercard) => usercard.completed > 0)
+          .map((usercard) => usercard.card.id);
+
+        const newCards = await strapi.db.query("api::card.card").findMany({
+          // fields: ["id"],
+          where: {
+            id: {
+              $notIn: cardsInProgress,
+            },
+          },
+          populate: {
+            realm: true,
+            image: true,
+          },
+        });
+
+        const freshUnlockedCardsNoProgramProgress = usercards
+          .filter((usercard) => usercard.completed === 0)
+          .map((usercard) => usercard.card.id);
+
+        newCardsList = sortCardsByScore(
+          newCards,
+          freshUnlockedCardsNoProgramProgress
+        );
+      } else if (prioritize === "content") {
+        const calculateTotalLevel = (relationCount) => {
+          let totalLevel = 0;
+          for (const [key, value] of Object.entries(relationCount)) {
+            totalLevel += value;
+          }
+          return totalLevel;
+        };
+        // 1. CONTUNUE LIST
+        continueList = usercards
+          .filter(
+            (usercard) =>
+              usercard.level > 0 &&
+              usercard.level < calculateTotalLevel(usercard.card.relationCount)
+          )
+          .sort((a, b) => {
+            // Sorting by the number of timestamps equal to today
+            const aProgressMap = a.progressMap || {};
+            const bProgressMap = b.progressMap || {};
+
+            const aTodayTimestamps = Object.values(aProgressMap).filter(
+              (entry) =>
+                entry.lastTime &&
+                new Date(entry.lastTime).setHours(0, 0, 0, 0) === todayTimestamp
+            ).length;
+
+            const bTodayTimestamps = Object.values(bProgressMap).filter(
+              (entry) =>
+                entry.lastTime &&
+                new Date(entry.lastTime).setHours(0, 0, 0, 0) === todayTimestamp
+            ).length;
+
+            if (aTodayTimestamps !== bTodayTimestamps) {
+              return bTodayTimestamps - aTodayTimestamps;
+            }
+
+            if (a.level !== b.level) {
+              return b.level - a.level;
+            }
+
+            // If timestamps are equal, sort by favorite category
+            const aIsFavorite = userPreferences.favoriteCategories.includes(
+              a.realm?.id
+            );
+            const bIsFavorite = userPreferences.favoriteCategories.includes(
+              b.realm?.id
+            );
+
+            if (aIsFavorite !== bIsFavorite) {
+              return aIsFavorite ? -1 : 1;
+            }
+
+            // If everything is equal, no specific sorting
+            return 0;
+          })
+          .map((usercard) => usercard.card);
+
+        // 2. NEW CARDS LIST
+        const cardsInProgress = usercards
+          .filter((usercard) => usercard.level > 0)
+          .map((usercard) => usercard.card.id);
+
+        const newCards = await strapi.db.query("api::card.card").findMany({
+          // fields: ["id"],
+          where: {
+            id: {
+              $notIn: cardsInProgress,
+            },
+          },
+          populate: {
+            realm: true,
+          },
+        });
+
+        const freshUnlockedCardsNoContentProgress = usercards
+          .filter((usercard) => usercard.level === 0)
+          .map((usercard) => usercard.card.id);
+
+        newCardsList = sortCardsByScore(
+          newCards,
+          freshUnlockedCardsNoContentProgress
+        );
+      } else if (prioritize === "progress") {
+        function calculateTotalClaims(progressQuest) {
+          let totalClaims = 0;
+
+          for (const contentType in C_TYPES.CONTENT_MAP) {
+            if (progressQuest.hasOwnProperty(contentType)) {
+              const { max } = C_TYPES.CONTENT_MAP[contentType];
+              const claims = Math.floor(
+                progressQuest[contentType].progress / max
+              );
+              totalClaims += claims;
+            }
+          }
+
+          return totalClaims;
+        }
+        // 1. CONTINUE LIST
+        continueList = usercards
+          .filter((usercard) => usercard.level > 0)
+          .map((usercard) => {
+            const totalClaims = calculateTotalClaims(usercard.progressQuest);
+            return {
+              card: usercard.card,
+              totalClaims,
+            };
+          })
+          // .sort((a, b) => b.totalClaims - a.totalClaims)
+          .sort((a, b) => {
+            if (a.totalClaims !== b.totalClaims) {
+              return b.totalClaims - a.totalClaims;
+            }
+
+            const aIsFavorite = userPreferences.favoriteCategories.includes(
+              a.realm?.id
+            );
+            const bIsFavorite = userPreferences.favoriteCategories.includes(
+              b.realm?.id
+            );
+
+            if (aIsFavorite !== bIsFavorite) {
+              return aIsFavorite ? -1 : 1;
+            }
+
+            return 0;
+          })
+          .map((usercard) => usercard.card);
+      }
+
+      const MAX_RECOMMENDED_CARDS = 10;
+      continueList = continueList.slice(
+        0,
+        Math.min(continueList.length, MAX_RECOMMENDED_CARDS)
+      );
+      newCardsList = newCardsList.slice(
+        0,
+        Math.min(newCardsList.length, MAX_RECOMMENDED_CARDS)
+      );
+
+      return ctx.send({ continueList, newCardsList });
     },
 
     async claimObjective(ctx) {

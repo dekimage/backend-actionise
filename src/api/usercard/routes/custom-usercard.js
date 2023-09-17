@@ -121,5 +121,10 @@ module.exports = {
       path: "/usercard/claim-calendar-reward",
       handler: "usercard.claimCalendarReward",
     },
+    {
+      method: "PUT",
+      path: "/usercard/get-recommended-cards",
+      handler: "usercard.getRecommendedCards",
+    },
   ],
 };

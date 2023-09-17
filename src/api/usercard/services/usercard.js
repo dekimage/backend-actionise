@@ -307,7 +307,7 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
 
     const userCardRelation = await STRAPI.getOrCreateUserCard(ctx, card);
 
-    // 2. ========== COMPLETE A CARD:
+    // 2. ========== COMPLETE A CARD: PROGRAM
     if (action === API_ACTIONS.updateCard.complete) {
       const isProgramMastered =
         userCardRelation.completed >= CONFIG.PROGRAM_COMPLETED_MAX;
@@ -403,7 +403,7 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
     let user_stats = user.stats || USER.DEFAULT_USER_STATS;
 
     if (!CONFIG.ARTIFACTS_TABLE[requirement]) {
-      console.log("wrong type name??");
+      console.log("wrong type name??", requirement);
       return false;
     }
 

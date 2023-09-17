@@ -89,6 +89,8 @@ const TYPES = {
   OBJECTIVE_TRIGGERS: {
     energy: "energy",
     complete: "complete",
+    master_card: "master_card",
+    action: "action", // claim quest
   },
   // 4 not done, the rest are done, but need testing,
   // also i changed gql and usercard redux types to also get artifact hope they work
