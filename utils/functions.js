@@ -247,10 +247,11 @@ const STRAPI = {
     }
     return checkUserCardRelation;
   },
-  updateStats: async function (user, stat) {
+  updateStats: async function (user, stat, value = 1) {
     await this.updateUser(user.id, {
-      stats: { ...user.stats, [stat]: user.stats[stat] + 1 },
+      stats: { ...user.stats, [stat]: user.stats[stat] + value },
     });
+    console.log({ stat });
   },
 
   triggerTutorial: async function (user, event) {

@@ -321,15 +321,19 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
         if (new_last_completed.length > CONFIG.MAX_COMPLETED_CARDS) {
           new_last_completed.shift();
         }
-        const payload = { last_completed_cards: new_last_completed };
-        await STRAPI.updateUser(user.id, payload);
+
+        const payload = {
+          last_completed_cards: new_last_completed,
+          stats: { ...user.stats, mastery: user.stats["mastery"] + 10 },
+        };
+
+        const updatedUser = await STRAPI.updateUser(user.id, payload);
 
         const update = {
           completed_at: Date.now(),
           ...(!isProgramMastered
             ? {
                 completed: userCardRelation.completed + 1,
-                mastery: userCardRelation.mastery + 1,
               }
             : { glory_points: userCardRelation.glory_points + 1 }),
         };
@@ -344,17 +348,17 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
         //update objectives
         const objectivesForNotification = await strapi
           .service("api::usercard.usercard")
-          .objectivesTrigger(user, TYPES.OBJECTIVE_TRIGGERS.complete);
+          .objectivesTrigger(updatedUser, TYPES.OBJECTIVE_TRIGGERS.complete);
 
         //update artifacts
         // TODO: ADD MULTIDIMENSIONAL ACHIVEMENT TRIGGER (mastery + cards_complete -> complete_program/card)
         const artifact1 = await strapi
           .service("api::usercard.usercard")
-          .achievementTrigger(user, TYPES.STATS_OPTIONS.cards_complete);
+          .achievementTrigger(updatedUser, TYPES.STATS_OPTIONS.cards_complete);
 
         const artifact2 = await strapi
           .service("api::usercard.usercard")
-          .achievementTrigger(user, TYPES.STATS_OPTIONS.cards_complete);
+          .achievementTrigger(updatedUser, TYPES.STATS_OPTIONS.cards_complete);
 
         return {
           usercard: usercardUpdated,

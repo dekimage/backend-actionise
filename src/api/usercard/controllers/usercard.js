@@ -760,6 +760,7 @@ module.exports = createCoreController(
           },
           populate: {
             realm: true,
+            image: true,
           },
         });
 
