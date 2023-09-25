@@ -1071,7 +1071,7 @@ module.exports = createCoreController(
       const user = await STRAPI.getUser(ctx.state.user.id);
       const tutorial = user.tutorial || {};
       const upload = {
-        ...(!user.shared_by && { shared_by: friendCode }),
+        ...(!user.shared_by && friendCode && { shared_by: friendCode }),
         tutorial: {
           ...tutorial,
           favoriteCategories: favoriteRealms,
