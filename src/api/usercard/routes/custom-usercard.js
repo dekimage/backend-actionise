@@ -126,5 +126,10 @@ module.exports = {
       path: "/usercard/get-recommended-cards",
       handler: "usercard.getRecommendedCards",
     },
+    {
+      method: "PUT",
+      path: "/usercard/submit-tutorial",
+      handler: "usercard.submitTutorial",
+    },
   ],
 };

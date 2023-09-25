@@ -52,6 +52,20 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
     const isDailyResetComplete =
       FUNCTIONS.formatDate(today) === user.reset_date;
 
+    // update last loggin anyway
+    await STRAPI.updateUser(user.id, {
+      tutorial: { ...user.tutorial, last_login: Date.now() },
+    });
+
+    //reset streak
+    const hoursSinceLastLogin =
+      (Date.now() - user.tutorial.last_login) / (1000 * 60 * 60);
+    if (hoursSinceLastLogin >= 24) {
+      await STRAPI.updateUser(user.id, {
+        streak: 0,
+      });
+    }
+
     const { resetWeekDate, shouldWeekRestart } = FUNCTIONS.calculateWeekReset(
       user,
       today
@@ -59,11 +73,9 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
 
     if (!isDailyResetComplete) {
       await STRAPI.updateUser(user.id, {
-        energy:
-          user.energy <= CONFIG.DEFAULT_ENERGY
-            ? CONFIG.DEFAULT_ENERGY
-            : user.energy,
+        energy: user.energy <= user.max_energy ? user.max_energy : user.energy,
         reset_date: FUNCTIONS.formatDate(today),
+        card_tickets: [],
         objectives_json: await FUNCTIONS.resetUserObjectives(
           user.objectives_json,
           TYPES.OBJECTIVE_TIME_TYPES.daily
@@ -517,6 +529,11 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
             $and: [
               {
                 isOpen: false,
+              },
+              {
+                card: {
+                  coming_soon: false,
+                },
               },
               {
                 $or: [

@@ -426,11 +426,11 @@ module.exports = createCoreController(
 
       const upload = {
         card_tickets: [...user.card_tickets, card_id],
-        energy: user.energy - 1,
+        energy: user.energy - CONFIG.TICKET_PRICE,
       };
 
       await STRAPI.updateUser(user.id, upload);
-      return { ...usercard, card: { id: card_id } };
+      return { userCardWithCard: { ...usercard, card: { id: card_id } } };
     },
 
     async rateCard(ctx) {
@@ -523,8 +523,6 @@ module.exports = createCoreController(
         ]);
       }
 
-      // STRAPI.testFind();
-
       const artifacts_count = await strapi.db
         .query("api::artifact.artifact")
         .count();
@@ -557,16 +555,6 @@ module.exports = createCoreController(
       ]);
 
       const data = await STRAPI.getUser(user.id, populate);
-
-      //   shared_buddies: {
-      //     populate: {
-      //       avatar: {
-      //         populate: {
-      //           image: true,
-      //         },
-      //       },
-      //     },
-      //   },
 
       const userDataModified = {
         ...data,
@@ -1076,6 +1064,22 @@ module.exports = createCoreController(
       randomCard.createdBy = "";
       randomCard.updatedBy = "";
       return randomCard;
+    },
+
+    async submitTutorial(ctx) {
+      const { favoriteRealms, friendCode } = ctx.request.body;
+      const user = await STRAPI.getUser(ctx.state.user.id);
+      const tutorial = user.tutorial || {};
+      const upload = {
+        ...(!user.shared_by && { shared_by: friendCode }),
+        tutorial: {
+          ...tutorial,
+          favoriteCategories: favoriteRealms,
+          isCompleted: true,
+        },
+      };
+      await STRAPI.updateUser(user.id, upload);
+      return { success: true };
     },
 
     // SHOP

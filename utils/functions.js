@@ -25,7 +25,7 @@ const FUNCTIONS = {
         }
       }
     }
-
+    console.log(obj);
     return obj;
   },
 

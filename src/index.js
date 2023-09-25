@@ -1,6 +1,6 @@
 "use strict";
 
-const { C_TYPES } = require("../utils/constants");
+const { C_TYPES, CONFIG } = require("../utils/constants");
 
 const createNewUserObjectives = async () => {
   //arr = objectives real
@@ -51,6 +51,8 @@ const afterCreate = async (result) => {
     where: { id: result.id },
     data: {
       xpLimit: 300,
+      energy: CONFIG.DEFAULT_ENERGY,
+      maxEnergy: CONFIG.DEFAULT_ENERGY,
       reset_week_date: new Date().getTime() + 7 * 24 * 60 * 60 * 1000,
       highest_buddy_shares: 0,
       highest_streak_count: 0,
@@ -60,6 +62,7 @@ const afterCreate = async (result) => {
         step: 1,
         progress: 0,
         isCompleted: false,
+        favoriteCategories: [],
         calendar: {
           claimed_days: [],
           startDate: new Date(),
