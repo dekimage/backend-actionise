@@ -1632,7 +1632,7 @@ module.exports = createCoreController(
       }
 
       const payload = {
-        settings: settings,
+        email_preferences: settings,
       };
 
       await STRAPI.updateUser(user.id, payload);
@@ -1646,6 +1646,10 @@ module.exports = createCoreController(
 
       if (!TYPES.SETTINGS_BASICINFO_TYPES.includes(inputName)) {
         ctx.throw(400, "invalid input");
+      }
+
+      if (user[inputName] == value) {
+        ctx.throw(400, "You already have this value");
       }
 
       const payload = {
