@@ -233,8 +233,7 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
     }
 
     // GENERIC GAIN ARTIFACT
-    console.log(11, { user, artifact_id, isRandom });
-    console.log({ ua: user.artifacts });
+
     const hasArtifact =
       user.artifacts.filter((a) => a.id === artifactId).length > 0;
 
@@ -341,7 +340,9 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
           stats: { ...user.stats, mastery: user.stats["mastery"] + 10 },
         };
 
-        const updatedUser = await STRAPI.updateUser(user.id, payload);
+        const updatedUser = await STRAPI.updateUser(user.id, payload, {
+          artifacts: true,
+        });
 
         const update = {
           completed_at: Date.now(),
