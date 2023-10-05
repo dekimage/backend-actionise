@@ -430,8 +430,10 @@ module.exports = createCoreController(
       };
 
       await STRAPI.updateUser(user.id, upload);
-      return { userCardWithCard: { ...usercard, card: { id: card_id } } };
+      return { userCardWithCard: { ...usercard, card: card } };
     },
+
+    
 
     async rateCard(ctx) {
       const availableRatings = CONFIG.CARD_RATINGS;

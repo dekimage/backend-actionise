@@ -233,6 +233,8 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
     }
 
     // GENERIC GAIN ARTIFACT
+    console.log(11, { user, artifact_id, isRandom });
+    console.log({ ua: user.artifacts });
     const hasArtifact =
       user.artifacts.filter((a) => a.id === artifactId).length > 0;
 
