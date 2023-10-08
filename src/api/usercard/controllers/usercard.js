@@ -17,7 +17,7 @@ module.exports = createCoreController(
       if (!CONFIG.ALLOWED_EMAILS.includes(ctx.state.user.email)) {
         ctx.throw(403, "You are not allowed to reset the user.");
       }
-      // ADD SECURITY CHECK FOR MY PERSONAL USERNAME IF NOT => RETURN 403
+
       const user = ctx.state.user;
       const payload = USER.TEST_USER_DATA;
 
@@ -31,12 +31,108 @@ module.exports = createCoreController(
         "shared_buddies.avatar.image",
       ]);
 
-      const data = STRAPI.updateUser(user.id, payload, populate);
+      // put is_open : false for content types
+      const ideas = await strapi.db
+        .query("api::idea.idea")
+        .findMany({ populate: { card: true } });
+
+      const metaphores = await strapi.db
+        .query("api::metaphore.metaphore")
+        .findMany({ populate: { card: true } });
+
+      const questions = await strapi.db
+        .query("api::question.question")
+        .findMany({ populate: { card: true } });
+
+      // Define an object to track the number of ideas updated per card
+      const ideaCount = {};
+
+      // Loop through all ideas and update isOpen property
+      for (const idea of ideas) {
+        const { card } = idea;
+        if (card && card.id) {
+          // Initialize the count for this card if it doesn't exist
+          if (!ideaCount[card.id]) {
+            ideaCount[card.id] = 0;
+          }
+
+          // Check if we should update isOpen for this idea
+          if (ideaCount[card.id] < 3) {
+            idea.isOpen = true;
+            ideaCount[card.id]++;
+          } else {
+            idea.isOpen = false;
+          }
+
+          // Save the updated idea
+
+          await strapi.db
+            .query("api::idea.idea")
+            .update({ where: { id: idea.id }, data: { isOpen: idea.isOpen } });
+        }
+      }
+
+      const metaphoreCount = {};
+
+      for (const idea of metaphores) {
+        const { card } = idea;
+        if (card && card.id) {
+          // Initialize the count for this card if it doesn't exist
+          if (!metaphoreCount[card.id]) {
+            metaphoreCount[card.id] = 0;
+          }
+
+          // Check if we should update isOpen for this idea
+          if (metaphoreCount[card.id] < 3) {
+            idea.isOpen = true;
+            metaphoreCount[card.id]++;
+          } else {
+            idea.isOpen = false;
+          }
+
+          // Save the updated idea
+
+          await strapi.db
+            .query("api::metaphore.metaphore")
+            .update({ where: { id: idea.id }, data: { isOpen: idea.isOpen } });
+        }
+      }
+
+      const questionCount = {};
+
+      // Loop through all ideas and update isOpen property
+      for (const idea of questions) {
+        const { card } = idea;
+        if (card && card.id) {
+          // Initialize the count for this card if it doesn't exist
+          if (!questionCount[card.id]) {
+            questionCount[card.id] = 0;
+          }
+
+          // Check if we should update isOpen for this idea
+          if (questionCount[card.id] < 1) {
+            idea.isOpen = true;
+            questionCount[card.id]++;
+          } else {
+            idea.isOpen = false;
+          }
+
+          // Save the updated idea
+
+          await strapi.db
+            .query("api::question.question")
+            .update({ where: { id: idea.id }, data: { isOpen: idea.isOpen } });
+        }
+      }
+
+      return true;
+
+      // const data = STRAPI.updateUser(user.id, payload, populate);
 
       // EXPENSIVE FUNCTION CALCULATE ALL RELATION COUNTS FOR CARDS!!!
-      await FUNCTIONS.updateRelationCountForAllCards();
+      // await FUNCTIONS.updateRelationCountForAllCards();
 
-      return data;
+      // return data
     },
     // CARD
     // @TODO check security here...
@@ -432,8 +528,6 @@ module.exports = createCoreController(
       await STRAPI.updateUser(user.id, upload);
       return { userCardWithCard: { ...usercard, card: card } };
     },
-
-    
 
     async rateCard(ctx) {
       const availableRatings = CONFIG.CARD_RATINGS;
