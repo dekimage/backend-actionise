@@ -513,7 +513,10 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
 
   getRandomUndroppedContent: async (ctx, user) => {
     const cardIds = user.unlocked_cards || [];
-    const contentTypes = Object.keys(C_TYPES.CONTENT_MAP);
+    const contentTypes = Object.keys(C_TYPES.CONTENT_MAP).filter(
+      (ct) => ct != "stories" && ct != "casestudies" // they have 1 content type - ITS ALWAYS OPEN
+    );
+    console.log({ contentTypes });
     while (contentTypes.length > 0) {
       const randomIndex = Math.floor(Math.random() * contentTypes.length);
       const randomContentType = contentTypes[randomIndex];
@@ -534,11 +537,6 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
                 isOpen: false,
               },
               {
-                card: {
-                  coming_soon: false,
-                },
-              },
-              {
                 $or: [
                   {
                     card: {
@@ -550,19 +548,23 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
                       is_open: true,
                     },
                   },
-                  user.pro
-                    ? {
-                        card: {
-                          type: "premium",
+                  ...(user.pro
+                    ? [
+                        {
+                          card: {
+                            type: "premium",
+                          },
                         },
-                      }
-                    : {},
+                      ]
+                    : []),
                 ],
               },
             ],
           },
           // populate: { card: true },
         });
+
+      console.log({ lootbox: undroppedContent.length });
 
       if (undroppedContent.length > 0) {
         const undroppedContentIds = undroppedContent.map(
@@ -574,6 +576,8 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
         const undroppedContentIdsFiltered = undroppedContentIds.filter(
           (id) => !userDroppedContent.includes(parseInt(id))
         );
+
+        console.log("undropped =>", undroppedContentIdsFiltered.length);
 
         if (undroppedContentIdsFiltered.length > 0) {
           const randomUndroppedContentIndex = Math.floor(

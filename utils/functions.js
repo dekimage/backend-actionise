@@ -216,7 +216,10 @@ const STRAPI = {
       .query(CONFIG.API_PATH)
       .findOne({ where: { user: userId, card: card.id } });
 
-    if (!checkUserCardRelation && (card.is_open || isForceCreate || ctx.state.user.pro)) {
+    if (
+      !checkUserCardRelation &&
+      (card.is_open || isForceCreate || ctx.state.user.pro)
+    ) {
       const newUserCardRelation = await strapi.db
         .query(CONFIG.API_PATH)
         .create({
@@ -241,7 +244,7 @@ const STRAPI = {
       !checkUserCardRelation &&
       !card.is_open &&
       !isForceCreate &&
-      !user.pro
+      !ctx.state.user.pro
     ) {
       ctx.throw(403, "You have not unlocked this card yet");
     }

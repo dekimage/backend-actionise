@@ -33,15 +33,7 @@ module.exports = createCoreController(
 
       // put is_open : false for content types
       const ideas = await strapi.db
-        .query("api::idea.idea")
-        .findMany({ populate: { card: true } });
-
-      const metaphores = await strapi.db
-        .query("api::metaphore.metaphore")
-        .findMany({ populate: { card: true } });
-
-      const questions = await strapi.db
-        .query("api::question.question")
+        .query("api::exercise.exercise")
         .findMany({ populate: { card: true } });
 
       // Define an object to track the number of ideas updated per card
@@ -67,60 +59,7 @@ module.exports = createCoreController(
           // Save the updated idea
 
           await strapi.db
-            .query("api::idea.idea")
-            .update({ where: { id: idea.id }, data: { isOpen: idea.isOpen } });
-        }
-      }
-
-      const metaphoreCount = {};
-
-      for (const idea of metaphores) {
-        const { card } = idea;
-        if (card && card.id) {
-          // Initialize the count for this card if it doesn't exist
-          if (!metaphoreCount[card.id]) {
-            metaphoreCount[card.id] = 0;
-          }
-
-          // Check if we should update isOpen for this idea
-          if (metaphoreCount[card.id] < 3) {
-            idea.isOpen = true;
-            metaphoreCount[card.id]++;
-          } else {
-            idea.isOpen = false;
-          }
-
-          // Save the updated idea
-
-          await strapi.db
-            .query("api::metaphore.metaphore")
-            .update({ where: { id: idea.id }, data: { isOpen: idea.isOpen } });
-        }
-      }
-
-      const questionCount = {};
-
-      // Loop through all ideas and update isOpen property
-      for (const idea of questions) {
-        const { card } = idea;
-        if (card && card.id) {
-          // Initialize the count for this card if it doesn't exist
-          if (!questionCount[card.id]) {
-            questionCount[card.id] = 0;
-          }
-
-          // Check if we should update isOpen for this idea
-          if (questionCount[card.id] < 1) {
-            idea.isOpen = true;
-            questionCount[card.id]++;
-          } else {
-            idea.isOpen = false;
-          }
-
-          // Save the updated idea
-
-          await strapi.db
-            .query("api::question.question")
+            .query("api::exercise.exercise")
             .update({ where: { id: idea.id }, data: { isOpen: idea.isOpen } });
         }
       }
@@ -174,8 +113,6 @@ module.exports = createCoreController(
       });
 
       let userCard = await STRAPI.getOrCreateUserCard(ctx, card);
-
-      console.log("original", userCard);
 
       let progressMap = userCard?.progressMap || {};
 
