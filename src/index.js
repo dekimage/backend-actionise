@@ -52,7 +52,7 @@ const afterCreate = async (result) => {
     data: {
       xpLimit: 300,
       energy: CONFIG.DEFAULT_ENERGY,
-      maxEnergy: CONFIG.DEFAULT_ENERGY,
+      max_energy: CONFIG.DEFAULT_ENERGY,
       reset_week_date: new Date().getTime() + 7 * 24 * 60 * 60 * 1000,
       highest_buddy_shares: 0,
       highest_streak_count: 0,
