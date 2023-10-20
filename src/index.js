@@ -112,7 +112,9 @@ const afterCreate = async (result) => {
   //     //     user_name: user.username,
   //     //   },
   //     // });
-  await strapi.service("api::usercard.usercard").sendEmailTemplate();
+  await strapi
+    .service("api::usercard.usercard")
+    .sendEmailTemplate({ email: user.email, username: user.username });
   return user;
 };
 

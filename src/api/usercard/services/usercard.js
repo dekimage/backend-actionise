@@ -15,9 +15,10 @@ const { FUNCTIONS, STRAPI } = require("../../../../utils/functions.js");
 const { createCoreService } = require("@strapi/strapi").factories;
 
 module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
-  sendEmailTemplate: async (template) => {
-    const defaultTemplate = "welcome-email";
-
+  sendEmailTemplate: async (
+    template = "welcome-email",
+    { email, username }
+  ) => {
     const emailTemplate = {
       subject: "Welcome <%= user.username %>",
       text: `Welcome to mywebsite.fr!
@@ -25,9 +26,7 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
       html: fs.readFileSync(
         path.join(
           __dirname,
-          `../../../extensions/email/templates/${
-            template || defaultTemplate
-          }.html`
+          `../../../extensions/email/templates/${template}.html`
         ),
         "utf8"
       ),
@@ -35,12 +34,11 @@ module.exports = createCoreService(CONFIG.API_PATH, ({ strapi }) => ({
 
     await strapi.plugins["email"].services.email.sendTemplatedEmail(
       {
-        // to: user.email, TODO:
-        to: "dejan.gavrilovikk@gmail.com",
+        to: email,
       },
       emailTemplate,
       {
-        user: { username: "deno", email: "dejan.gavrilovikk@gmail.com" },
+        user: { username: username, email: email },
       }
     );
 
