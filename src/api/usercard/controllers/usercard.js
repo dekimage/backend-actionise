@@ -1103,8 +1103,16 @@ module.exports = createCoreController(
       const { favoriteRealms, friendCode } = ctx.request.body;
       const user = await STRAPI.getUser(ctx.state.user.id);
       const tutorial = user.tutorial || {};
+      const buddyUser = await strapi.db
+        .query("plugin::users-permissions.user")
+        .findOne({
+          where: { id: friendCode },
+        });
+
       const upload = {
-        ...(!user.shared_by && friendCode && { shared_by: friendCode }),
+        ...(buddyUser &&
+          !user.shared_by &&
+          friendCode && { shared_by: friendCode }),
         tutorial: {
           ...tutorial,
           favoriteCategories: favoriteRealms,
