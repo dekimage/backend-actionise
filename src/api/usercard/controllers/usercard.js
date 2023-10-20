@@ -356,7 +356,6 @@ module.exports = createCoreController(
 
         const userUpdate = {
           stars: user.stars + CONFIG.XP_FROM_QUEST,
-          // xp from function -> gainXp
           droppedContent: {
             ...droppedContent,
             [rewardType]: droppedContent[rewardType]
