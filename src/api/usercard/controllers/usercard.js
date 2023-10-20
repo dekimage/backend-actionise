@@ -355,7 +355,7 @@ module.exports = createCoreController(
         const xpRewards = await strapi.service(CONFIG.API_PATH).gainXp(user);
 
         const userUpdate = {
-          stars: user.stars + CONFIG.XP_FROM_QUEST,
+          stars: user.stars + CONFIG.STARS_FROM_QUEST,
           droppedContent: {
             ...droppedContent,
             [rewardType]: droppedContent[rewardType]
@@ -384,7 +384,7 @@ module.exports = createCoreController(
 
         return {
           rewards: {
-            stars: CONFIG.XP_FROM_QUEST,
+            stars: CONFIG.STARS_FROM_QUEST,
             xp: xpRewards,
             content: { ...reward, type: rewardType },
             cardMeta: cardFromReward.card,
