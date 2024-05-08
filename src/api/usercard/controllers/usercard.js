@@ -599,7 +599,7 @@ module.exports = createCoreController(
 
     async getRecommendedCards(ctx) {
       const { prioritize } = ctx.request.body;
-
+      //hey
       const user = await STRAPI.getUser(ctx.state.user.id);
 
       const usercards = await strapi.db
